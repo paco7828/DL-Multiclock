@@ -1,20 +1,20 @@
 -3.7V battery
 -Step up converter circuit:
-	-MCP1624-I/CHY
-	-4.7uH inductor
-	-4.7uF capacitor
-	-1.5MR resistor
-	-470kR resistor
-	-10uF capacitor
--Arduino nano
+	-MCP1624-I/CHY - https://www.hestore.hu/search.php?q=MCP1624
+	-4.7uH inductor - SM4532-4R7M - https://www.hestore.hu/prod_10047163.html
+	-4.7uF capacitor - https://www.hestore.hu/prod_10032044.html
+	-1.5MR resistor - https://www.hestore.hu/prod_10001251.html
+	-470kR resistor - https://www.hestore.hu/prod_10001179.html
+	-10uF capacitor - https://www.hestore.hu/prod_10032047.html
+-ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
 -6x DL3416 vintage display
--ON/OFF switch
+-ON/OFF switch - https://www.hestore.hu/prod_10034537.html
 -RTC circuit:
-	-PCF8563T
-	-32.768kHz crystal
-	-CR2032 battery holder
-	-CR2032 coin cell battery
-	-2x 4.7kR resistor
-	-status led
-	-150R resistor
-	-2x 10uF capacitor
+	-PCF8563T - https://www.hestore.hu/prod_10030157.html
+	-32.768kHz crystal - https://www.hestore.hu/prod_10025521.html
+	-CR2032 battery holder - https://www.hestore.hu/prod_10045258.html
+	-CR2032 coin cell battery - https://www.hestore.hu/prod_10042619.html
+	-2x 4.7kR resistor - https://www.hestore.hu/prod_10036380.html
+	-status led - https://www.hestore.hu/prod_10043215.html
+	-150R resistor - https://www.hestore.hu/prod_10001149.html
+	-2x 10uF capacitor - https://www.hestore.hu/prod_10032047.html
