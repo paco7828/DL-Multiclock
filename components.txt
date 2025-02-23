@@ -1,0 +1,20 @@
+-3.7V battery
+-Step up converter circuit:
+	-MCP1624-I/CHY
+	-4.7uH inductor
+	-4.7uF capacitor
+	-1.5MR resistor
+	-470kR resistor
+	-10uF capacitor
+-Arduino nano
+-6x DL3416 vintage display
+-ON/OFF switch
+-RTC circuit:
+	-PCF8563T
+	-32.768kHz crystal
+	-CR2032 battery holder
+	-CR2032 coin cell battery
+	-2x 4.7kR resistor
+	-status led
+	-150R resistor
+	-2x 10uF capacitor

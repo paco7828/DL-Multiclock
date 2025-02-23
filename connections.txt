@@ -1,0 +1,30 @@
+DL3416 --> arduino
+Shared:
+	-VCC -> 5V
+	-GND -> GND
+	-WR -> D2
+	-BL -> D3
+	-CLR -> D4
+	-D0 -> D5
+	-D1 -> D6
+	-D2 -> D7
+	-D3 -> D8
+	-D4 -> D9
+	-D5 -> D10
+	-D6 -> D11
+	-CE1 -> VCC
+	-CE2 -> VCC
+
+Independent:
+	-CE3 (Display 1)
+	-CE4 (Display 1)
+	-CE3 (Display 2)
+	-CE4 (Display 2)
+	-CE3 (Display 3)
+	-CE4 (Display 3)
+	-CE3 (Display 4)
+	-CE4 (Display 4)
+	-CE3 (Display 5)
+	-CE4 (Display 5)
+	-CE3 (Display 6)
+	-CE4 (Display 6)

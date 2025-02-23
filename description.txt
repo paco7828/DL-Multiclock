@@ -1,0 +1,16 @@
+Features:
+	-can operate both wired and wirelessly
+	-when plugged in:
+		-charges battery
+		-operates from the cable
+		-can be programmed
+
+Layout:
+_ -> empty segment
+
+Display1: HH_: (hours)
+Display2: _MM_ (minutes)
+Display3: YYYY (year)
+Display4: Mon_ (day, 3 letters)
+Display5: _MM_ (month)
+Display6: _DD_ (day)
