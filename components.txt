@@ -9,7 +9,6 @@
 -ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
 -6x DL3416 vintage display
 -ON/OFF switch - https://www.hestore.hu/prod_10034537.html
--2x shift registers - 74HC595 - https://www.hestore.hu/prod_10021551.html
 -RTC circuit:
 	-PCF8563T - https://www.hestore.hu/prod_10030157.html
 	-32.768kHz crystal - https://www.hestore.hu/prod_10025521.html
