@@ -1,7 +1,6 @@
 DL3416 --> Arduino
 
 Shared:
-
 	-VCC -> 5V
 	-GND -> GND
 	-WR -> D2
@@ -17,34 +16,38 @@ Shared:
 	-CE1 -> VCC
 	-CE2 -> VCC
 
-Independent (via 74HC595 Shift Registers):
+74HC595 A (First Shift Register) Connections:
+	-Pin 1 (Q1) → CE4 (Display 1)
+	-Pin 2 (Q2) → CE3 (Display 2)
+	-Pin 3 (Q3) → CE4 (Display 2)
+	-Pin 4 (Q4) → CE3 (Display 3)
+	-Pin 5 (Q5) → CE4 (Display 3)
+	-Pin 6 (Q6) → CE3 (Display 4)
+	-Pin 7 (Q7) → CE4 (Display 4)
+	-Pin 8 (GND) → GND
+	-Pin 9 (Q7') → 74HC595 B SER (Pin 14) (for cascading to second shift register)
+	-Pin 10 (SRCLR / Reset) → 5V (always enabled, no reset needed)
+	-Pin 11 (SRCLK / SHCP) → D13 (Clock Signal from ATmega328P-PU)
+	-Pin 12 (RCLK / STCP) → A0 (Latch Signal from ATmega328P-PU)
+	-Pin 13 (OE / Output Enable) → GND (always enabled)
+	-Pin 14 (SER / DS) → D12 (Serial Data from ATmega328P-PU)
+	-Pin 15 (Q0) → CE3 (Display 1)
+	-Pin 16 (VCC) → 5V
 
-	-74HC595 SER (DS) -> D12
-	-74HC595 SRCLK (SHCP) -> D13
-	-74HC595 RCLK (STCP) -> A0
-	-74HC595 OE (Output Enable) -> GND
-	-74HC595 SRCLR (Reset) -> 5V
-
-Connections to Shift Registers:
-
-	-CE3 (Display 1) -> 74HC595 Q0 (Pin 15)
-	-CE4 (Display 1) -> 74HC595 Q1 (Pin 1)
-
-	-CE3 (Display 2) -> 74HC595 Q2 (Pin 2)
-	-CE4 (Display 2) -> 74HC595 Q3 (Pin 3)
-
-	-CE3 (Display 3) -> 74HC595 Q4 (Pin 4)
-	-CE4 (Display 3) -> 74HC595 Q5 (Pin 5)
-
-	-CE3 (Display 4) -> 74HC595 Q6 (Pin 6)
-	-CE4 (Display 4) -> 74HC595 Q7 (Pin 7)
-
-	-CE3 (Display 5) -> 74HC595 Q8 (Pin 15 of 2nd 74HC595)
-	-CE4 (Display 5) -> 74HC595 Q9 (Pin 1 of 2nd 74HC595)
-
-	-CE3 (Display 6) -> 74HC595 Q10 (Pin 2 of 2nd 74HC595)
-	-CE4 (Display 6) -> 74HC595 Q11 (Pin 3 of 2nd 74HC595)
-
-Cascading Shift Registers:
-
-	-74HC595 (1) Q7' -> 74HC595 (2) SER (DS)
+74HC595 B (Second Shift Register) Connections:
+	-Pin 1 (Q1) → CE4 (Display 5)
+	-Pin 2 (Q2) → CE3 (Display 6)
+	-Pin 3 (Q3) → CE4 (Display 6)
+	-Pin 4 (Q4) → (Unused or Next Display)
+	-Pin 5 (Q5) → (Unused or Next Display)
+	-Pin 6 (Q6) → (Unused or Next Display)
+	-Pin 7 (Q7) → (Unused or Next Display)
+	-Pin 8 (GND) → GND
+	-Pin 9 (Q7') → (Unused or Next Shift Register) (for cascading more shift registers if needed)
+	-Pin 10 (SRCLR / Reset) → 5V (always enabled, no reset needed)
+	-Pin 11 (SRCLK / SHCP) → D13 (Clock Signal from ATmega328P-PU, shared with 1st shift register)
+	-Pin 12 (RCLK / STCP) → A0 (Latch Signal from ATmega328P-PU, shared with 1st shift register)
+	-Pin 13 (OE / Output Enable) → GND (always enabled)
+	-Pin 14 (SER / DS) → Pin 9 (Q7') of 74HC595 A (Receives Data from First Shift Register)
+	-Pin 15 (Q0) → CE3 (Display 5)
+	-Pin 16 (VCC) → 5V
