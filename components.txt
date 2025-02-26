@@ -7,6 +7,12 @@
 	-470kR resistor - https://www.hestore.hu/prod_10001179.html
 	-10uF capacitor - https://www.hestore.hu/prod_10032047.html
 -ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
+-micro usb port - https://www.hestore.hu/prod_10032693.html
+-CH340G - https://www.hestore.hu/prod_10036442.html
+-capacitor 100nF - https://www.hestore.hu/prod_10001122.html
+-10k resistor - https://www.hestore.hu/prod_10040338.html
+-16MHz crystal - https://www.hestore.hu/prod_10021423.html
+2x 22pf capacitor - https://www.hestore.hu/prod_10027787.html
 -6x DL3416 vintage display
 -2x 74HC595 Shift register - https://www.hestore.hu/prod_10021551.html
 -ON/OFF switch - https://www.hestore.hu/prod_10034537.html
