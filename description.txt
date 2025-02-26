@@ -8,7 +8,9 @@ Features:
 Layout:
 _ -> empty segment
 
-Display 1: 2025 (YYYY -> Year)
-Display 2: /02/ (/MM/ -> Month)
-Display 3: 24_1 (DD_H -> Day_Hour 1st digit)
-Display 4: 6.00 (H.MM -> Hour 2nd digit, minute)
+Display1: HH_: (hours)
+Display2: _MM_ (minutes)
+Display3: YYYY (year)
+Display4: Mon_ (day, 3 letters)
+Display5: _MM_ (month)
+Display6: _DD_ (day)
