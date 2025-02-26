@@ -8,6 +8,7 @@
 	-10uF capacitor - https://www.hestore.hu/prod_10032047.html
 -ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
 -6x DL3416 vintage display
+-2x 74HC595 Shift register - https://www.hestore.hu/prod_10021551.html
 -ON/OFF switch - https://www.hestore.hu/prod_10034537.html
 -RTC circuit:
 	-PCF8563T - https://www.hestore.hu/prod_10030157.html
