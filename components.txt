@@ -1,27 +1,39 @@
--3.7V battery
--Step up converter circuit:
-	-MCP1624-I/CHY - https://www.hestore.hu/search.php?q=MCP1624
-	-4.7uH inductor - SM4532-4R7M - https://www.hestore.hu/prod_10047163.html
-	-4.7uF capacitor - https://www.hestore.hu/prod_10032044.html
-	-1.5MR resistor - https://www.hestore.hu/prod_10001251.html
-	-470kR resistor - https://www.hestore.hu/prod_10001179.html
-	-10uF capacitor - https://www.hestore.hu/prod_10032047.html
--ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
--micro usb port - https://www.hestore.hu/prod_10032693.html
--CH340G - https://www.hestore.hu/prod_10036442.html
--capacitor 100nF - https://www.hestore.hu/prod_10001122.html
--10k resistor - https://www.hestore.hu/prod_10040338.html
--16MHz crystal - https://www.hestore.hu/prod_10021423.html
-2x 22pf capacitor - https://www.hestore.hu/prod_10027787.html
--6x DL3416 vintage display
--2x 74HC595 Shift register - https://www.hestore.hu/prod_10021551.html
--ON/OFF switch - https://www.hestore.hu/prod_10034537.html
--RTC circuit:
-	-PCF8563T - https://www.hestore.hu/prod_10030157.html
-	-32.768kHz crystal - https://www.hestore.hu/prod_10025521.html
+Batteries:
+	-3.7V battery - https://www.hestore.hu/prod_10036161.html
 	-CR2032 battery holder - https://www.hestore.hu/prod_10045258.html
 	-CR2032 coin cell battery - https://www.hestore.hu/prod_10042619.html
-	-2x 4.7kR resistor - https://www.hestore.hu/prod_10036380.html
+ICs:
+	-MCP1624-I/CHY - https://www.hestore.hu/search.php?q=MCP1624
+	-ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
+	-CH340G - https://www.hestore.hu/prod_10036442.html
+	-2x 74HC595 Shift register - https://www.hestore.hu/prod_10021551.html
+	-PCF8563T - https://www.hestore.hu/prod_10030157.html
+
+Passives:
+	-capacitors:
+		-4.7uF - https://www.hestore.hu/prod_10032044.html
+		-100nF - https://www.hestore.hu/prod_10001122.html
+		-2x 22pf - https://www.hestore.hu/prod_10001131.html
+		-2x 10uF - https://www.hestore.hu/prod_10032047.html
+
+	-resistors:
+		-1.5MR - https://www.hestore.hu/prod_10001251.html
+		-470kR - https://www.hestore.hu/prod_10001179.html
+		-10k - https://www.hestore.hu/prod_10040338.html
+		-2x 4.7kR - https://www.hestore.hu/prod_10036380.html
+		-150R - https://www.hestore.hu/prod_10001149.html
+		-2k - https://www.hestore.hu/prod_10038447.html
+		-1k - https://www.hestore.hu/prod_10031299.html
+
+	indcutors:
+		-4.7uH inductor - SM4532-4R7M - https://www.hestore.hu/prod_10047163.html
+
+	crystals:
+		-16MHz crystal - https://www.hestore.hu/prod_10021423.html
+		-32.768kHz crystal - https://www.hestore.hu/prod_10025521.html
+
+Extras:
+	-micro usb port - https://www.hestore.hu/prod_10032693.html
+	-6x DL3416 vintage display
+	-ON/OFF switch - https://www.hestore.hu/prod_10034537.html
 	-status led - https://www.hestore.hu/prod_10043215.html
-	-150R resistor - https://www.hestore.hu/prod_10001149.html
-	-2x 10uF capacitor - https://www.hestore.hu/prod_10032047.html
