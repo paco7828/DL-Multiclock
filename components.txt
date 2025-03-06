@@ -6,7 +6,7 @@ ICs:
 	-MCP1624-I/CHY - https://www.hestore.hu/search.php?q=MCP1624
 	-ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
 	-CH340G - https://www.hestore.hu/prod_10036442.html
-	-2x 74HC595 Shift register - https://www.hestore.hu/prod_10021551.html
+	-2x 74HC595 Shift register - https://www.hestore.hu/prod_10039401.html
 	-PCF8563T - https://www.hestore.hu/prod_10030157.html
 
 Passives:
