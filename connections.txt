@@ -1,1 +1,52 @@
-DL3416 -> ATMEGA328P-PU
+Step up converter circuit
+
+Battery+ -> VCC
+Battery- -> GND
+4.7uF capacitor (-) -> GND
+4.7uF capacitor (+) -> VCC
+4.7uH inductor (side A) -> VCC
+4.7uH inductor (side B) -> MCP1624T-I/CHY SW
+MCP1624T-I/CHY VIN -> VCC
+MCP1624T-I/CHY EN -> MCP1624T-I/CHY VIN
+MCP1624T-I/CHY GND -> GND
+MCP1624T-I/CHY VOUT -> 1.5M resistor (A side) -> 5V
+MCP1624T-I/CHY VFB -> 1.5M resistor (B side) -> 470k resistor (A side)
+470k resistor (B side) -> GND
+10uF capacitor (-) -> GND
+10uF capacitor (+) -> 5V
+-------------------------------------------------------------------------
+Clock circuit
+
+PCF8563T SDA -> 4.7k resistor -> ATMEGA328P-PU PC4 ADC4
+PCF8563T SCL -> 4.7k resistor -> ATMEGA328P-PU PC5 ADC5
+PCF8563T VDD -> 3.3V
+Battery holder (-) -> GND
+Battery holder (+) -> VDD
+PCF8563T VSS -> GND
+PCF8563T OSCO -> 32.768kHz (A side)
+PCF8563T OSCI -> 32.768kHz (B side)
+10uF capacitor (-) -> GND
+10uF capacitor (+) -> PCF8563T VDD
+-------------------------------------------------------------------------
+Clock status led circuit
+
+2k resistor (A side) -> 5V
+2k resistor (B side) -> 3.3V
+1k resistor (A side) -> GND
+1k resistor (B side) -> 3.3V
+Red led anode -> 3.3V
+Red led cathode -> 150R resistor -> GND
+-------------------------------------------------------------------------
+16MHz crystal
+
+16Mhz crystal (A side) -> ATMEGA328P-PU PB6 XTAL1
+16MHz crystal (B side) -> ATMEGA328P-PU PB7 XTAL2
+22pF capacitor (1) (A side) -> GND
+22pF capacitor (1) (B side) -> 16MHz crystal (A side)
+22pF capacitor (2) (A side) -> GND
+22pF capacitor (2) (B side) -> 16 MHz crystal (B side)
+-------------------------------------------------------------------------
+
+CH340G
+
+-------------------------------------------------------------------------
