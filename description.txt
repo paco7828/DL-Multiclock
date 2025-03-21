@@ -1,7 +1,6 @@
 Features:
 	-can operate both wired and wirelessly
 	-when plugged in:
-		-charges battery
 		-operates from the cable
 		-can be programmed
 
