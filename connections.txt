@@ -14,7 +14,7 @@ MCP1624T-I/CHY VFB -> 1.5M resistor (B side) -> 470k resistor (A side)
 470k resistor (B side) -> GND
 10uF capacitor (-) -> GND
 10uF capacitor (+) -> 5V
--------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
 Clock circuit
 
 PCF8563T SDA -> 4.7k resistor -> ATMEGA328P-PU PC4 ADC4
@@ -27,7 +27,7 @@ PCF8563T OSCO -> 32.768kHz (A side)
 PCF8563T OSCI -> 32.768kHz (B side)
 10uF capacitor (-) -> GND
 10uF capacitor (+) -> PCF8563T VDD
--------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
 Clock status led circuit
 
 2k resistor (A side) -> 5V
@@ -36,7 +36,7 @@ Clock status led circuit
 1k resistor (B side) -> 3.3V
 Red led anode -> 3.3V
 Red led cathode -> 150R resistor -> GND
--------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------
 16MHz crystal
 
 16Mhz crystal (A side) -> ATMEGA328P-PU PB6 XTAL1
@@ -45,8 +45,105 @@ Red led cathode -> 150R resistor -> GND
 22pF capacitor (1) (B side) -> 16MHz crystal (A side)
 22pF capacitor (2) (A side) -> GND
 22pF capacitor (2) (B side) -> 16 MHz crystal (B side)
--------------------------------------------------------------------------
-
+---------------------------------------------------------------------------------------------------------------------------
 CH340G
 
--------------------------------------------------------------------------
+GND -> GND
+TXD -> ATMEGA328P-PU PD0 RXD
+RXD -> ATMEGA328P-PU PD1 TXD
+UD+ -> Micro USB D+
+UD- -> Micro USB D-
+DTR# -> 100nF capacitor -> ATMEGA328P-PU PC6 RESET#
+VCC -> 5V
+---------------------------------------------------------------------------------------------------------------------------
+Micro USB
+
+VCC -> 5V
+D- -> CH340G UD-
+D+ -> CH340G UD+
+GND -> GND
+0 -> GND
+---------------------------------------------------------------------------------------------------------------------------
+ATMEGA328P-PU
+
+PC6 RESET# -> CH340G DTR#
+10k resistor (A side) -> 5V
+10k resistor (B side) -> PC6 RESET#
+PD0 RXD -> CH340G TXD
+PD1 TXD -> CH340G RXD
+PB6 XTAL1 -> 16MHz crystal (A)
+PB7 XTAL2 -> 16MHz crystal (B)
+VCC -> 5V
+AVCC -> 5V
+GND -> GND
+GND -> GND
+PC0 ADC0 -> 74HC595 (1) SerIn
+PC1 ADC1 -> 74HC595 (1) Shift + 74HC595 (2) Shift
+PC2 ADC2 -> 74HC595 (1) Latch + 74HC595 (2) Latch
+PC4 ADC4 -> PCF8563T SDA
+PC5 ADC5 -> PCF8563T SCL
+INT0 PD2 -> Display (1-6) WR
+INT1 PD3 -> Display (1-6) BL
+T0 PD4 -> Display (1-6) CLR
+T1 PD5 -> Display (1-6) D0
+AIN0 PD6 -> Display (1-6) D1
+AIN1 PD7 -> Display (1-6) D2
+PCINT0 PB0 -> Display (1-6) D3
+PCINT1 PB1 -> Display (1-6) D4
+PCINT2 PB2 -> Display (1-6) D5
+PCINT3 PB3 -> Display (1-6) D6
+---------------------------------------------------------------------------------------------------------------------------
+74HC595 (1) (A0 controller)
+
+Latch -> ATMEGA328P-PU PC2 ADC2
+Shift -> ATMEGA328P-PU PC1 ADC1
+SerIn -> ATMEGA328P-PU PC0 ADC0
+SerOut -> 74HC595 (2) SerIn
+!Reset -> 5V
+!OE -> GND
+GND -> GND
+VCC -> 5V
+Q0 -> Display (1) A0
+Q1 -> Display (2) A0
+Q2 -> Display (3) A0
+Q3 -> Display (4) A0
+Q4 -> Display (5) A0
+Q5 -> Display (6) A0
+---------------------------------------------------------------------------------------------------------------------------
+74HC595 (2) (A1 controller)
+
+Latch -> ATMEGA328P-PU PC2 ADC2
+Shift -> ATMEGA328P-PU PC1 ADC1
+SerIn -> 74HC595 (1) SerOut
+!Reset -> 5V
+!OE -> GND
+GND -> GND
+VCC -> 5V
+Q0 -> Display (1) A1
+Q1 -> Display (2) A1
+Q2 -> Display (3) A1
+Q3 -> Display (4) A1
+Q4 -> Display (5) A1
+Q5 -> Display (6) A1
+---------------------------------------------------------------------------------------------------------------------------
+Display (1-6)
+
+CE1 -> 5V
+CE2 -> 5V
+CE3 -> GND
+CE4 -> GND
+CLR -> ATMEGA328P-PU T0 PD4
+VCC -> 5V
+A0 -> 74HC595 (1) Q0-Q5
+A1 -> 74HC595 (2) Q0-Q5
+WR -> ATMEGA328P-PU INT0 PD2
+GND -> GND
+BL -> ATMEGA328P-PU INT1 PD3
+D0 -> ATMEGA328P-PU T1 PD5
+D1 -> ATMEGA328P-PU AIN0 PD6
+D2 -> ATMEGA328P-PU AIN1 PD7
+D3 -> ATMEGA328P-PU PCINT0 PB0
+D4 -> ATMEGA328P-PU PCINT1 PB1
+D5 -> ATMEGA328P-PU PCINT2 PB2
+D6 -> ATMEGA328P-PU PCINT3 PB3
+---------------------------------------------------------------------------------------------------------------------------
