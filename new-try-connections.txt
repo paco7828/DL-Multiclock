@@ -18,9 +18,8 @@ D5 -> 12
 D6 -> 13
 
 Independent pins:
-WR -> A3
-WR -> 2
-WR -> 3
-WR -> 4
-WR -> 5
-WR -> 6
+WR -> 2 (Display 1)
+WR -> 3 (Display 2)
+WR -> 4 (Display 3)
+WR -> 5 (Display 4)
+WR -> 6 (Display 5)

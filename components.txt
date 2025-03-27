@@ -18,8 +18,7 @@ Red led - https://www.hestore.hu/prod_10043215.html
 150R resistor - https://www.hestore.hu/prod_10001149.html
 CH340G - https://www.hestore.hu/prod_10036442.html
 100nF capacitor - https://www.hestore.hu/prod_10001122.html
-2x 74HC595 - https://www.hestore.hu/prod_10039401.html
 Micro USB - https://www.hestore.hu/prod_10032693.html
 ATMEGA328P-PU - https://www.hestore.hu/prod_10032009.html
 10k resistor - https://www.hestore.hu/prod_10040338.html
-6x DL3416 display
+5x DL3416 display

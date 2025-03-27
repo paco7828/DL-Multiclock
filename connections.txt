@@ -93,57 +93,31 @@ PCINT1 PB1 -> Display (1-6) D4
 PCINT2 PB2 -> Display (1-6) D5
 PCINT3 PB3 -> Display (1-6) D6
 ---------------------------------------------------------------------------------------------------------------------------
-74HC595 (1) (A0 controller)
+Displays:
 
-Latch -> ATMEGA328P-PU PC2 ADC2
-Shift -> ATMEGA328P-PU PC1 ADC1
-SerIn -> ATMEGA328P-PU PC0 ADC0
-SerOut -> 74HC595 (2) SerIn
-!Reset -> 5V
-!OE -> GND
-GND -> GND
-VCC -> 5V
-Q0 -> Display (1) A0
-Q1 -> Display (2) A0
-Q2 -> Display (3) A0
-Q3 -> Display (4) A0
-Q4 -> Display (5) A0
-Q5 -> Display (6) A0
----------------------------------------------------------------------------------------------------------------------------
-74HC595 (2) (A1 controller)
-
-Latch -> ATMEGA328P-PU PC2 ADC2
-Shift -> ATMEGA328P-PU PC1 ADC1
-SerIn -> 74HC595 (1) SerOut
-!Reset -> 5V
-!OE -> GND
-GND -> GND
-VCC -> 5V
-Q0 -> Display (1) A1
-Q1 -> Display (2) A1
-Q2 -> Display (3) A1
-Q3 -> Display (4) A1
-Q4 -> Display (5) A1
-Q5 -> Display (6) A1
----------------------------------------------------------------------------------------------------------------------------
-Display (1-6)
-
-CE1 -> 5V
-CE2 -> 5V
+Shared pins:
+CE1 -> VCC
+CE2 -> VCC
 CE3 -> GND
 CE4 -> GND
-CLR -> ATMEGA328P-PU T0 PD4
-VCC -> 5V
-A0 -> 74HC595 (1) Q0-Q5
-A1 -> 74HC595 (2) Q0-Q5
-WR -> ATMEGA328P-PU INT0 PD2
+CLR -> A0
+VCC -> VCC
+A0 -> A1
+A1 -> A2
 GND -> GND
-BL -> ATMEGA328P-PU INT1 PD3
-D0 -> ATMEGA328P-PU T1 PD5
-D1 -> ATMEGA328P-PU AIN0 PD6
-D2 -> ATMEGA328P-PU AIN1 PD7
-D3 -> ATMEGA328P-PU PCINT0 PB0
-D4 -> ATMEGA328P-PU PCINT1 PB1
-D5 -> ATMEGA328P-PU PCINT2 PB2
-D6 -> ATMEGA328P-PU PCINT3 PB3
+BL -> VCC
+D0 -> 7
+D1 -> 8
+D2 -> 9
+D3 -> 10
+D4 -> 11
+D5 -> 12
+D6 -> 13
+
+Independent pins:
+WR -> 2 (Display 1)
+WR -> 3 (Display 2)
+WR -> 4 (Display 3)
+WR -> 5 (Display 4)
+WR -> 6 (Display 5)
 ---------------------------------------------------------------------------------------------------------------------------
