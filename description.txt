@@ -7,9 +7,9 @@ Features:
 Layout:
 _ -> empty segment
 
-Display1: HH_: (hours)
-Display2: _MM_ (minutes)
-Display3: YYYY (year)
-Display4: Mon_ (day, 3 letters)
-Display5: _MM_ (month)
-Display6: _DD_ (day)
+Example display:
+Display 1: 2025
+Display 2: _03_
+Display 3: _27_
+Display 4: _14:
+Display 5: 00__
