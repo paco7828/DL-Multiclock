@@ -1,0 +1,26 @@
+Shared pins:
+CE1 -> VCC
+CE2 -> VCC
+CE3 -> GND
+CE4 -> GND
+CLR -> A0
+VCC -> VCC
+A0 -> A1
+A1 -> A2
+GND -> GND
+BL -> VCC
+D0 -> 7
+D1 -> 8
+D2 -> 9
+D3 -> 10
+D4 -> 11
+D5 -> 12
+D6 -> 13
+
+Independent pins:
+WR -> A3
+WR -> 2
+WR -> 3
+WR -> 4
+WR -> 5
+WR -> 6
