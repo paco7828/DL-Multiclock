@@ -17,25 +17,33 @@ public:
     pinMode(addr1, OUTPUT);
     pinMode(wr, OUTPUT);
     digitalWrite(wr, HIGH);
+
+    // Start with first segment
+    selectAddr(1);
   }
 
   void selectAddr(byte segment) {
-    // Segment addressing logic remains the same
+    // Updated addressing logic for 4-segment display
     switch (segment) {
-      case 1:
-        digitalWrite(addr0, HIGH);
-        digitalWrite(addr1, HIGH);
-        break;
-      case 2:
-        digitalWrite(addr0, LOW);
-        digitalWrite(addr1, HIGH);
-        break;
-      case 3:
+      case 1:  // First segment (top)
         digitalWrite(addr0, HIGH);
         digitalWrite(addr1, LOW);
         break;
-      case 4:
+      case 2:  // Second segment 
         digitalWrite(addr0, LOW);
+        digitalWrite(addr1, HIGH);
+        break;
+      case 3:  // Third segment
+        digitalWrite(addr0, LOW);
+        digitalWrite(addr1, LOW);
+        break;
+      case 4:  // Fourth segment (bottom)
+        digitalWrite(addr0, HIGH);
+        digitalWrite(addr1, HIGH);
+        break;
+      default:
+        // Default to first segment if out of range
+        digitalWrite(addr0, HIGH);
         digitalWrite(addr1, LOW);
         break;
     }
@@ -65,7 +73,7 @@ public:
   void displayText(const char* message) {
     // Display text across 4 segments
     for (int i = 0; i < 4 && message[i] != '\0'; i++) {
-      selectAddr(i + 1);
+      selectAddr(i + 1);  // Note: using i+1 to start from first segment
       displayChar(message[i]);
     }
   }
