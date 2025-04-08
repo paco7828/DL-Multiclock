@@ -1,4 +1,5 @@
 #include <PCF8563Clock.h>
+#include <EEPROM.h>
 
 const byte N_OF_SEGMENTS = 4;  // Number of segments per display
 const byte SCREEN_COUNT = 5;   // Number of displays
@@ -21,8 +22,11 @@ void setup() {
   Serial.begin(9600);
   rtc.begin();
 
-  // Set the initial time
-  rtc.setTime(0, 56, 23, 28, 5, 3, 25);  // 23:56:00 on March 28, 2025
+  // Set the initial time once
+  if (EEPROM.read(0) == 1) {
+    rtc.setTime(20, 13, 22, 8, 3, 4, 25);  // 2025.04.08, Tuesday, 22:15:00
+    EEPROM.write(0, 0xFF);
+  }
 
   // Initialize pins
   pinMode(CLR, OUTPUT);
