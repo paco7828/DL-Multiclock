@@ -1,7 +1,7 @@
 #include <PCF8563Clock.h>
 
-const byte N_OF_SEGMENTS = 4;
-const byte SCREEN_COUNT = 5;
+const byte N_OF_SEGMENTS = 4;  // Number of segments per display
+const byte SCREEN_COUNT = 5;   // Number of displays
 
 // Shared pins
 const byte CLR = A0;
@@ -12,8 +12,8 @@ const byte dataPins[7] = { 7, 8, 9, 10, 11, 12, 13 };
 // Write pins for each display
 const byte writePins[SCREEN_COUNT] = { 2, 3, 4, 5, 6 };
 
-String text = "";
-String splittedText[SCREEN_COUNT];
+String displayText = "";            // Text to be displayed on screens
+String splittedText[SCREEN_COUNT];  // Text split for each display
 
 PCF8563Clock rtc;
 
@@ -22,7 +22,7 @@ void setup() {
   rtc.begin();
 
   // Set the initial time
-  rtc.setTime(0, 56, 23, 28, 5, 3, 25); // 23:56:00 on March 28, 2024
+  rtc.setTime(0, 56, 23, 28, 5, 3, 25);  // 23:56:00 on March 28, 2025
 
   // Initialize pins
   pinMode(CLR, OUTPUT);
@@ -46,22 +46,51 @@ void setup() {
 }
 
 void loop() {
-  // Update time and text every second
-    updateTime();
+  // Format and update the time for display
+  updateDisplayText();
 
-    // Split text safely
-    int count = 0;
-    for (int i = 0; i < text.length() && count < SCREEN_COUNT; i += N_OF_SEGMENTS) {
-      splittedText[count] = text.substring(i, min(i + N_OF_SEGMENTS, text.length()));
+  // Split text across displays
+  splitTextForDisplays();
 
-      // Pad with spaces if needed
-      while (splittedText[count].length() < N_OF_SEGMENTS) {
-        splittedText[count] = " " + splittedText[count];
-      }
+  // Display the text on all screens
+  updateAllDisplays();
 
-      count++;
+  // Small delay to avoid flickering and reduce CPU usage
+  delay(100);
+}
+
+void updateDisplayText() {
+  // Format time and date to fit across 5 screens (20 segments)
+  // Format: "HH:MM:SS DD/MM/YY"
+  String timeStr = rtc.getHour() + ":" + rtc.getMinute() + ":" + rtc.getSecond();
+  String dateStr = rtc.getYear() + "/" + rtc.getMonth() + "/" + rtc.getDayNum();
+  displayText = timeStr + " " + dateStr;
+
+  // Debug print to show time is updating
+  Serial.println("Current Time: " + displayText);
+}
+
+void splitTextForDisplays() {
+  // Clear previous text segments
+  for (int i = 0; i < SCREEN_COUNT; i++) {
+    splittedText[i] = "    ";  // Initialize with spaces
+  }
+
+  // Split text safely
+  int textLength = min((int)displayText.length(), N_OF_SEGMENTS * SCREEN_COUNT);
+
+  for (int i = 0; i < textLength; i++) {
+    int screenIndex = i / N_OF_SEGMENTS;
+    int segmentIndex = i % N_OF_SEGMENTS;
+
+    if (screenIndex < SCREEN_COUNT) {
+      // Replace character at specific position
+      splittedText[screenIndex].setCharAt(segmentIndex, displayText.charAt(i));
     }
+  }
+}
 
+void updateAllDisplays() {
   // Iterate through each display
   for (int screenIndex = 0; screenIndex < SCREEN_COUNT; screenIndex++) {
     // Iterate through each segment of the text for this display
@@ -123,12 +152,4 @@ void clearDisplays() {
   delayMicroseconds(100);
   digitalWrite(CLR, HIGH);
   delayMicroseconds(100);
-}
-
-void updateTime() {
-  // Get the current time directly from RTC each time
-  text = rtc.getFormattedTime() + " " + rtc.getFormattedDate() + "  ";
-  
-  // Debug print to show time is updating
-  Serial.println("Current Time: " + text);
 }
