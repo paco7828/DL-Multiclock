@@ -24,7 +24,15 @@ void setup() {
 
   // Set the initial time once
   if (EEPROM.read(0) == 1) {
-    rtc.setTime(20, 13, 22, 8, 3, 4, 25);  // 2025.04.08, Tuesday, 22:15:00
+    rtc.setTime(
+      0,   // second
+      24,  // minute
+      21,  // hour (24-hour format)
+      24,  // day of month
+      4,   // day of week (Thursday)
+      4,   // month (April)
+      25   // year (2025 -> 25)
+    );
     EEPROM.write(0, 0xFF);
   }
 
