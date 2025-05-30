@@ -23,17 +23,17 @@ void setup() {
   rtc.begin();
 
   // Set the initial time once
-  if (EEPROM.read(0) == 1) {
+  if (EEPROM.read(0) == 1) {  // Check for our marker value
     rtc.setTime(
       0,   // second
-      24,  // minute
-      21,  // hour (24-hour format)
-      24,  // day of month
-      4,   // day of week (Thursday)
-      4,   // month (April)
+      0,   // minute
+      14,  // hour (24-hour format) - 14:00 = 2:00 PM
+      30,  // day of month
+      5,   // day of week (Friday)
+      5,   // month (May)
       25   // year (2025 -> 25)
     );
-    EEPROM.write(0, 0xFF);
+    EEPROM.write(0, 0xFF);  // Write marker to indicate time has been set
   }
 
   // Initialize pins
@@ -58,6 +58,16 @@ void setup() {
 }
 
 void loop() {
+  // Add watchdog-style timing
+  static unsigned long lastLoopTime = 0;
+  unsigned long currentTime = millis();
+  
+  // Prevent loop from running too frequently
+  if (currentTime - lastLoopTime < 50) {  // Minimum 50ms between updates
+    return;
+  }
+  lastLoopTime = currentTime;
+
   // Format and update the time for display
   updateDisplayText();
 
@@ -67,19 +77,65 @@ void loop() {
   // Display the text on all screens
   updateAllDisplays();
 
-  // Small delay to avoid flickering and reduce CPU usage
-  delay(100);
+  // Add a small delay but don't block too long
+  delay(50);
 }
 
 void updateDisplayText() {
-  // Format time and date to fit across 5 screens (20 segments)
-  // Format: "HH:MM:SS DD/MM/YY"
-  String timeStr = rtc.getHour() + ":" + rtc.getMinute() + ":" + rtc.getSecond();
-  String dateStr = rtc.getYear() + "/" + rtc.getMonth() + "/" + rtc.getDayNum();
-  displayText = timeStr + " " + dateStr;
-
-  // Debug print to show time is updating
-  Serial.println("Current Time: " + displayText);
+  // Add I2C error handling and recovery
+  static unsigned long lastUpdateTime = 0;
+  static String lastValidTime = "14:00:00 2025/05/30";
+  
+  unsigned long currentMillis = millis();
+  
+  // Try to get time from RTC with error handling
+  byte second, minute, hour, dayOfMonth, dayOfWeek, month, year;
+  
+  // Check if I2C is responding
+  Wire.beginTransmission(0x51);  // PCF8563 default address
+  byte error = Wire.endTransmission();
+  
+  if (error == 0) {  // I2C communication successful
+    rtc.getTime(second, minute, hour, dayOfMonth, dayOfWeek, month, year);
+    
+    // Validate the time values
+    if (hour <= 23 && minute <= 59 && second <= 59 && 
+        month >= 1 && month <= 12 && dayOfMonth >= 1 && dayOfMonth <= 31) {
+      
+      // Format time and date
+      char timeBuffer[9];
+      char dateBuffer[11];
+      snprintf(timeBuffer, sizeof(timeBuffer), "%02d:%02d:%02d", hour, minute, second);
+      snprintf(dateBuffer, sizeof(dateBuffer), "20%02d/%02d/%02d", year, month, dayOfMonth);
+      
+      displayText = String(timeBuffer) + " " + String(dateBuffer);
+      lastValidTime = displayText;
+      lastUpdateTime = currentMillis;
+      
+      Serial.println("RTC OK: " + displayText);
+    } else {
+      Serial.println("Invalid RTC data detected");
+      displayText = lastValidTime;
+    }
+  } else {
+    // I2C communication failed
+    Serial.print("I2C Error: ");
+    Serial.println(error);
+    
+    // Use last known good time or fall back to system millis
+    if (currentMillis - lastUpdateTime > 5000) {  // If no update for 5 seconds
+      Serial.println("Using fallback time display");
+      displayText = "I2C ERROR       ";
+    } else {
+      displayText = lastValidTime;
+    }
+    
+    // Try to reinitialize I2C
+    Wire.end();
+    delay(10);
+    Wire.begin();
+    rtc.begin();
+  }
 }
 
 void splitTextForDisplays() {
