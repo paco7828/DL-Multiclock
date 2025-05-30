@@ -1,6 +1,13 @@
 #include <PCF8563Clock.h>
 #include <EEPROM.h>
+#include <avr/wdt.h>  // Watchdog timer library
 
+// Reset variables
+unsigned long previousMillis = 0;
+const unsigned long resetInterval = 300000UL; // 5 minutes
+int rebootCounter = 0;
+
+// Screen info
 const byte N_OF_SEGMENTS = 4;  // Number of segments per display
 const byte SCREEN_COUNT = 5;   // Number of displays
 
@@ -13,6 +20,7 @@ const byte dataPins[7] = { 7, 8, 9, 10, 11, 12, 13 };
 // Write pins for each display
 const byte writePins[SCREEN_COUNT] = { 2, 3, 4, 5, 6 };
 
+// Output text
 String displayText = "";            // Text to be displayed on screens
 String splittedText[SCREEN_COUNT];  // Text split for each display
 
@@ -22,12 +30,15 @@ void setup() {
   Serial.begin(9600);
   rtc.begin();
 
+  // Disable watchdog timer during setup
+  wdt_disable();
+
   // Set the initial time once
   if (EEPROM.read(0) == 1) {  // Check for our marker value
     rtc.setTime(
-      0,   // second
-      0,   // minute
-      14,  // hour (24-hour format) - 14:00 = 2:00 PM
+      30,   // second
+      58,   // minute
+      23,  // hour (24-hour format) - 14:00 = 2:00 PM
       30,  // day of month
       5,   // day of week (Friday)
       5,   // month (May)
@@ -55,18 +66,34 @@ void setup() {
 
   // Clear displays
   clearDisplays();
+
+  // Initialize reset timer
+  previousMillis = millis();
+  
+  Serial.println("Setup completed. Auto-reset every 5 minutes enabled.");
 }
 
 void loop() {
+  // Check for 5-minute reset
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= resetInterval) {
+    Serial.println("5 minutes elapsed. Restarting MCU...");
+    Serial.flush(); // Ensure message is sent before reset
+    delay(100);     // Small delay to ensure serial transmission
+    
+    // Enable watchdog with shortest timeout to force reset
+    wdt_enable(WDTO_15MS);
+    while(1) {} // Wait for watchdog reset
+  }
+
   // Add watchdog-style timing
   static unsigned long lastLoopTime = 0;
-  unsigned long currentTime = millis();
   
   // Prevent loop from running too frequently
-  if (currentTime - lastLoopTime < 50) {  // Minimum 50ms between updates
+  if (currentMillis - lastLoopTime < 50) {  // Minimum 50ms between updates
     return;
   }
-  lastLoopTime = currentTime;
+  lastLoopTime = currentMillis;
 
   // Format and update the time for display
   updateDisplayText();
