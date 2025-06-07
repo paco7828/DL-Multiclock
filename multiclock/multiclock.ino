@@ -1,242 +1,189 @@
 #include <PCF8563Clock.h>
 #include <EEPROM.h>
-#include <avr/wdt.h>  // Watchdog timer library
+#include <Wire.h>
+#include <avr/wdt.h>
 
-// Reset variables
-unsigned long previousMillis = 0;
-const unsigned long resetInterval = 300000UL; // 5 minutes
-int rebootCounter = 0;
+// ========== Configuration ==========
+const unsigned long resetInterval = 300000UL;  // 5 minutes
 
-// Screen info
-const byte N_OF_SEGMENTS = 4;  // Number of segments per display
-const byte SCREEN_COUNT = 5;   // Number of displays
+const byte N_OF_SEGMENTS = 4;
+const byte SCREEN_COUNT = 5;
 
-// Shared pins
 const byte CLR = A0;
 const byte ADDR0 = A1;
 const byte ADDR1 = A2;
 const byte dataPins[7] = { 7, 8, 9, 10, 11, 12, 13 };
-
-// Write pins for each display
 const byte writePins[SCREEN_COUNT] = { 2, 3, 4, 5, 6 };
 
-// Output text
-String displayText = "";            // Text to be displayed on screens
-String splittedText[SCREEN_COUNT];  // Text split for each display
+// ========== Globals ==========
+String displayText = "";
+String splittedText[SCREEN_COUNT];
+unsigned long previousMillis = 0;
+unsigned long lastLoopTime = 0;
+unsigned long lastUpdateTime = 0;
+String lastValidTime = "14:00:00 2025/05/30";
 
 PCF8563Clock rtc;
 
+// ========== Setup ==========
 void setup() {
   Serial.begin(9600);
   rtc.begin();
 
-  // Disable watchdog timer during setup
   wdt_disable();
 
-  // Set the initial time once
-  if (EEPROM.read(0) == 1) {  // Check for our marker value
+  if (EEPROM.read(0) == 1) {
     rtc.setTime(
-      30,   // second
-      58,   // minute
-      23,  // hour (24-hour format) - 14:00 = 2:00 PM
-      30,  // day of month
-      5,   // day of week (Friday)
-      5,   // month (May)
-      25   // year (2025 -> 25)
+      45,  // second
+      42,  // minute
+      16,  // hour
+      7,  // day of month
+      6,   // day of week - 0 = Sunday
+      6,   // month
+      25   // year
     );
-    EEPROM.write(0, 0xFF);  // Write marker to indicate time has been set
+    EEPROM.write(0, 0xFF);
   }
 
-  // Initialize pins
   pinMode(CLR, OUTPUT);
   pinMode(ADDR0, OUTPUT);
   pinMode(ADDR1, OUTPUT);
   digitalWrite(CLR, HIGH);
 
-  // Initialize shared data pins
-  for (int i = 0; i < 7; i++) {
-    pinMode(dataPins[i], OUTPUT);
-  }
-
-  // Initialize write pins
+  for (int i = 0; i < 7; i++) pinMode(dataPins[i], OUTPUT);
   for (int i = 0; i < SCREEN_COUNT; i++) {
     pinMode(writePins[i], OUTPUT);
     digitalWrite(writePins[i], HIGH);
   }
 
-  // Clear displays
   clearDisplays();
-
-  // Initialize reset timer
   previousMillis = millis();
-  
-  Serial.println("Setup completed. Auto-reset every 5 minutes enabled.");
+
+  // Enable watchdog (2s timeout)
+  wdt_enable(WDTO_2S);
+
+  Serial.println("Setup completed. Watchdog and I2C recovery enabled.");
 }
 
+// ========== Main Loop ==========
 void loop() {
-  // Check for 5-minute reset
   unsigned long currentMillis = millis();
+
+  // Periodic full reset every 5 minutes
   if (currentMillis - previousMillis >= resetInterval) {
     Serial.println("5 minutes elapsed. Restarting MCU...");
-    Serial.flush(); // Ensure message is sent before reset
-    delay(100);     // Small delay to ensure serial transmission
-    
-    // Enable watchdog with shortest timeout to force reset
+    Serial.flush();
+    delay(100);
     wdt_enable(WDTO_15MS);
-    while(1) {} // Wait for watchdog reset
+    while (1) {}
   }
 
-  // Add watchdog-style timing
-  static unsigned long lastLoopTime = 0;
-  
-  // Prevent loop from running too frequently
-  if (currentMillis - lastLoopTime < 50) {  // Minimum 50ms between updates
-    return;
-  }
+  if (currentMillis - lastLoopTime < 50) return;
   lastLoopTime = currentMillis;
 
-  // Format and update the time for display
   updateDisplayText();
-
-  // Split text across displays
   splitTextForDisplays();
-
-  // Display the text on all screens
   updateAllDisplays();
 
-  // Add a small delay but don't block too long
-  delay(50);
+  wdt_reset();  // Only pet watchdog if loop completes successfully
 }
 
+// ========== Time Update ==========
 void updateDisplayText() {
-  // Add I2C error handling and recovery
-  static unsigned long lastUpdateTime = 0;
-  static String lastValidTime = "14:00:00 2025/05/30";
-  
-  unsigned long currentMillis = millis();
-  
-  // Try to get time from RTC with error handling
-  byte second, minute, hour, dayOfMonth, dayOfWeek, month, year;
-  
-  // Check if I2C is responding
-  Wire.beginTransmission(0x51);  // PCF8563 default address
+  byte sec, min, hr, dom, dow, mon, yr;
+
+  Wire.beginTransmission(0x51);
   byte error = Wire.endTransmission();
-  
-  if (error == 0) {  // I2C communication successful
-    rtc.getTime(second, minute, hour, dayOfMonth, dayOfWeek, month, year);
-    
-    // Validate the time values
-    if (hour <= 23 && minute <= 59 && second <= 59 && 
-        month >= 1 && month <= 12 && dayOfMonth >= 1 && dayOfMonth <= 31) {
-      
-      // Format time and date
-      char timeBuffer[9];
-      char dateBuffer[11];
-      snprintf(timeBuffer, sizeof(timeBuffer), "%02d:%02d:%02d", hour, minute, second);
-      snprintf(dateBuffer, sizeof(dateBuffer), "20%02d/%02d/%02d", year, month, dayOfMonth);
-      
-      displayText = String(timeBuffer) + " " + String(dateBuffer);
+
+  if (error == 0) {
+    rtc.getTime(sec, min, hr, dom, dow, mon, yr);
+    if (hr <= 23 && min <= 59 && sec <= 59 && mon >= 1 && mon <= 12 && dom >= 1 && dom <= 31) {
+      char timeBuf[9], dateBuf[11];
+      snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", hr, min, sec);
+      snprintf(dateBuf, sizeof(dateBuf), "20%02d/%02d/%02d", yr, mon, dom);
+      displayText = String(timeBuf) + " " + String(dateBuf);
       lastValidTime = displayText;
-      lastUpdateTime = currentMillis;
-      
+      lastUpdateTime = millis();
       Serial.println("RTC OK: " + displayText);
+      return;
     } else {
-      Serial.println("Invalid RTC data detected");
-      displayText = lastValidTime;
+      Serial.println("Invalid RTC values");
     }
   } else {
-    // I2C communication failed
     Serial.print("I2C Error: ");
     Serial.println(error);
-    
-    // Use last known good time or fall back to system millis
-    if (currentMillis - lastUpdateTime > 5000) {  // If no update for 5 seconds
-      Serial.println("Using fallback time display");
-      displayText = "I2C ERROR       ";
-    } else {
-      displayText = lastValidTime;
-    }
-    
-    // Try to reinitialize I2C
-    Wire.end();
-    delay(10);
-    Wire.begin();
-    rtc.begin();
   }
+
+  // Fallback
+  if (millis() - lastUpdateTime > 5000) {
+    Serial.println("Using fallback time display");
+    displayText = "I2C ERROR       ";
+  } else {
+    displayText = lastValidTime;
+  }
+
+  resetI2CBus();
 }
 
-void splitTextForDisplays() {
-  // Clear previous text segments
-  for (int i = 0; i < SCREEN_COUNT; i++) {
-    splittedText[i] = "    ";  // Initialize with spaces
+// ========== I2C Bus Recovery ==========
+void resetI2CBus() {
+  Serial.println("Resetting I2C bus...");
+  pinMode(A4, OUTPUT);
+  pinMode(A5, OUTPUT);
+
+  digitalWrite(A4, HIGH);
+  for (int i = 0; i < 9; i++) {
+    digitalWrite(A5, HIGH);
+    delayMicroseconds(5);
+    digitalWrite(A5, LOW);
+    delayMicroseconds(5);
   }
+  digitalWrite(A5, HIGH);
+  digitalWrite(A4, HIGH);
+  delayMicroseconds(10);
 
-  // Split text safely
-  int textLength = min((int)displayText.length(), N_OF_SEGMENTS * SCREEN_COUNT);
+  Wire.begin();
+  rtc.begin();
+}
 
-  for (int i = 0; i < textLength; i++) {
-    int screenIndex = i / N_OF_SEGMENTS;
-    int segmentIndex = i % N_OF_SEGMENTS;
-
-    if (screenIndex < SCREEN_COUNT) {
-      // Replace character at specific position
-      splittedText[screenIndex].setCharAt(segmentIndex, displayText.charAt(i));
+// ========== Display Functions ==========
+void splitTextForDisplays() {
+  for (int i = 0; i < SCREEN_COUNT; i++) splittedText[i] = "    ";
+  int len = min((int)displayText.length(), N_OF_SEGMENTS * SCREEN_COUNT);
+  for (int i = 0; i < len; i++) {
+    int screen = i / N_OF_SEGMENTS;
+    int seg = i % N_OF_SEGMENTS;
+    if (screen < SCREEN_COUNT) {
+      splittedText[screen].setCharAt(seg, displayText.charAt(i));
     }
   }
 }
 
 void updateAllDisplays() {
-  // Iterate through each display
-  for (int screenIndex = 0; screenIndex < SCREEN_COUNT; screenIndex++) {
-    // Iterate through each segment of the text for this display
-    for (int segmentIndex = 0; segmentIndex < N_OF_SEGMENTS; segmentIndex++) {
-      // Select the correct segment
-      selectAddr(segmentIndex + 1);
-
-      // Display the character
-      char currentChar = splittedText[screenIndex][segmentIndex];
-      displayChar(currentChar, writePins[screenIndex]);
+  for (int screen = 0; screen < SCREEN_COUNT; screen++) {
+    for (int seg = 0; seg < N_OF_SEGMENTS; seg++) {
+      selectAddr(seg + 1);
+      displayChar(splittedText[screen][seg], writePins[screen]);
     }
   }
 }
 
 void selectAddr(byte segment) {
-  switch (segment) {
-    case 1:  // First segment (top)
-      digitalWrite(ADDR0, HIGH);
-      digitalWrite(ADDR1, HIGH);
-      break;
-    case 2:  // Second segment
-      digitalWrite(ADDR0, LOW);
-      digitalWrite(ADDR1, HIGH);
-      break;
-    case 3:  // Third segment
-      digitalWrite(ADDR0, HIGH);
-      digitalWrite(ADDR1, LOW);
-      break;
-    case 4:  // Fourth segment (bottom)
-      digitalWrite(ADDR0, LOW);
-      digitalWrite(ADDR1, LOW);
-      break;
-  }
+  digitalWrite(ADDR0, (segment == 1 || segment == 3));
+  digitalWrite(ADDR1, (segment == 1 || segment == 2));
 }
 
 byte asciiToDL3416(char c) {
-  // Convert character to display-compatible byte
   return (c >= ' ' && c <= '_') ? c : 0x20;
 }
 
 void setDataPins(byte data) {
-  // Use shared data pins for setting data
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 7; i++)
     digitalWrite(dataPins[i], (data >> i) & 0x01);
-  }
 }
 
 void displayChar(char c, int wrPin) {
-  // Display single character
-  byte data = asciiToDL3416(c);
-  setDataPins(data);
+  setDataPins(asciiToDL3416(c));
   digitalWrite(wrPin, LOW);
   delayMicroseconds(10);
   digitalWrite(wrPin, HIGH);
