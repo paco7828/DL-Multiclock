@@ -1,11 +1,8 @@
-#include <PCF8563Clock.h>
+#include <Rtc_Pcf8563.h>
 #include <EEPROM.h>
 #include <Wire.h>
-#include <avr/wdt.h>
 
 // ========== Configuration ==========
-const unsigned long resetInterval = 300000UL;  // 5 minutes
-
 const byte N_OF_SEGMENTS = 4;
 const byte SCREEN_COUNT = 5;
 
@@ -18,30 +15,21 @@ const byte writePins[SCREEN_COUNT] = { 2, 3, 4, 5, 6 };
 // ========== Globals ==========
 String displayText = "";
 String splittedText[SCREEN_COUNT];
-unsigned long previousMillis = 0;
 unsigned long lastLoopTime = 0;
-unsigned long lastUpdateTime = 0;
-String lastValidTime = "14:00:00 2025/05/30";
 
-PCF8563Clock rtc;
+Rtc_Pcf8563 rtc;
 
 // ========== Setup ==========
 void setup() {
   Serial.begin(9600);
-  rtc.begin();
+  Wire.begin();
 
-  wdt_disable();
-
+  // Set time once
   if (EEPROM.read(0) == 1) {
-    rtc.setTime(
-      45,  // second
-      42,  // minute
-      16,  // hour
-      7,  // day of month
-      6,   // day of week - 0 = Sunday
-      6,   // month
-      25   // year
-    );
+    rtc.initClock();
+    rtc.setDate(8, 1, 6, 0, 25);  // day, weekday (0=Sunday), month, century (0=20xx), year (25=2025)
+    rtc.setTime(16, 6, 0);        // hour, minute, second
+    delay(100);
     EEPROM.write(0, 0xFF);
   }
 
@@ -57,93 +45,35 @@ void setup() {
   }
 
   clearDisplays();
-  previousMillis = millis();
 
-  // Enable watchdog (2s timeout)
-  wdt_enable(WDTO_2S);
-
-  Serial.println("Setup completed. Watchdog and I2C recovery enabled.");
+  displayText = "TIME SETREADY TO USE";
+  splitTextForDisplays();
+  updateAllDisplays();
+  delay(2000);
+  Serial.println("Setup completed.");
 }
 
 // ========== Main Loop ==========
 void loop() {
   unsigned long currentMillis = millis();
 
-  // Periodic full reset every 5 minutes
-  if (currentMillis - previousMillis >= resetInterval) {
-    Serial.println("5 minutes elapsed. Restarting MCU...");
-    Serial.flush();
-    delay(100);
-    wdt_enable(WDTO_15MS);
-    while (1) {}
-  }
-
-  if (currentMillis - lastLoopTime < 50) return;
+  if (currentMillis - lastLoopTime < 1000) return;  // Update every second
   lastLoopTime = currentMillis;
 
   updateDisplayText();
   splitTextForDisplays();
   updateAllDisplays();
-
-  wdt_reset();  // Only pet watchdog if loop completes successfully
 }
 
 // ========== Time Update ==========
 void updateDisplayText() {
-  byte sec, min, hr, dom, dow, mon, yr;
+  char timeBuf[9], dateBuf[11];
+  snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", rtc.getHour(), rtc.getMinute(), rtc.getSecond());
+  snprintf(dateBuf, sizeof(dateBuf), "20%02d/%02d/%02d", rtc.getYear(), rtc.getMonth(), rtc.getDay());
 
-  Wire.beginTransmission(0x51);
-  byte error = Wire.endTransmission();
+  displayText = String(timeBuf) + " " + String(dateBuf);
 
-  if (error == 0) {
-    rtc.getTime(sec, min, hr, dom, dow, mon, yr);
-    if (hr <= 23 && min <= 59 && sec <= 59 && mon >= 1 && mon <= 12 && dom >= 1 && dom <= 31) {
-      char timeBuf[9], dateBuf[11];
-      snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", hr, min, sec);
-      snprintf(dateBuf, sizeof(dateBuf), "20%02d/%02d/%02d", yr, mon, dom);
-      displayText = String(timeBuf) + " " + String(dateBuf);
-      lastValidTime = displayText;
-      lastUpdateTime = millis();
-      Serial.println("RTC OK: " + displayText);
-      return;
-    } else {
-      Serial.println("Invalid RTC values");
-    }
-  } else {
-    Serial.print("I2C Error: ");
-    Serial.println(error);
-  }
-
-  // Fallback
-  if (millis() - lastUpdateTime > 5000) {
-    Serial.println("Using fallback time display");
-    displayText = "I2C ERROR       ";
-  } else {
-    displayText = lastValidTime;
-  }
-
-  resetI2CBus();
-}
-
-// ========== I2C Bus Recovery ==========
-void resetI2CBus() {
-  Serial.println("Resetting I2C bus...");
-  pinMode(A4, OUTPUT);
-  pinMode(A5, OUTPUT);
-
-  digitalWrite(A4, HIGH);
-  for (int i = 0; i < 9; i++) {
-    digitalWrite(A5, HIGH);
-    delayMicroseconds(5);
-    digitalWrite(A5, LOW);
-    delayMicroseconds(5);
-  }
-  digitalWrite(A5, HIGH);
-  digitalWrite(A4, HIGH);
-  delayMicroseconds(10);
-
-  Wire.begin();
-  rtc.begin();
+  Serial.println("Time: " + displayText);
 }
 
 // ========== Display Functions ==========
