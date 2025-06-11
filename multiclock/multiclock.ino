@@ -50,8 +50,8 @@ void setup() {
   // Set time once
   if (EEPROM.read(SETUP_FLAG_ADDR) == 1) {
     rtc.initClock();
-    rtc.setDate(10, 2, 6, 0, 25);  // day, weekday (0=Sunday), month, century (0=20xx), year (25=2025)
-    rtc.setTime(14, 30, 30);       // hour, minute, second
+    rtc.setDate(11, 3, 6, 0, 25);  // day, weekday (0=Sunday), month, century (0=20xx), year (25=2025)
+    rtc.setTime(12, 59, 15);       // hour, minute, second
     delay(100);
     EEPROM.write(SETUP_FLAG_ADDR, 0xFF);
     EEPROM.write(LAST_DAY_ADDR, rtc.getDay());  // Store initial day
@@ -93,6 +93,7 @@ void loop() {
 
   // Check if it's time to show temp/humidity (every 5 minutes)
   if (currentMillis - lastTempHumidityDisplay >= 300000) {  // 300000ms = 5 minutes
+    Serial.println("5 minutes elapsed - starting temp/humidity display");
     showTempHumiditySequence();
     return;
   }
@@ -119,7 +120,7 @@ void checkDayChange() {
     long totalSeconds = (long)currentHour * 3600 + (long)currentMinute * 60 + currentSecond;
 
     // Subtract some seconds (example: subtract 10 seconds per day)
-    totalSeconds -= 10;
+    totalSeconds -= 5;
 
     // Handle negative seconds
     if (totalSeconds < 0) {
@@ -174,7 +175,7 @@ void showTempHumiditySequence() {
   Wire.end();
 
   showingTempHumidity = true;
-  tempHumidityStep = 0;
+  tempHumidityStep = 0;  // Always start at step 0 (temperature)
   tempHumidityStepTime = millis();
   lastTempHumidityDisplay = millis();
 
@@ -186,17 +187,24 @@ void showTempHumiditySequence() {
 
   splitTextForDisplays();
   updateAllDisplays();
+
+  Serial.println("Starting temp/humidity sequence - showing temperature");
 }
 
 void handleTempHumiditySequence(unsigned long currentMillis) {
+  // Check if enough time has passed for the current step
   if (currentMillis - tempHumidityStepTime < 2000) return;  // Each step lasts 2 seconds
 
   tempHumidityStepTime = currentMillis;
   tempHumidityStep++;
 
+  Serial.print("Temp/Humidity step: ");
+  Serial.println(tempHumidityStep);
+
   switch (tempHumidityStep) {
-    case 1:  // Blank screen
+    case 1:  // Blank screen after temperature
       clearDisplays();
+      Serial.println("Blank screen after temperature");
       break;
 
     case 2:  // Show humidity with exact spacing: "   56%     HUMIDITY  "
@@ -207,14 +215,17 @@ void handleTempHumiditySequence(unsigned long currentMillis) {
         displayText = String(humStr);
         splitTextForDisplays();
         updateAllDisplays();
+        Serial.println("Showing humidity");
       }
       break;
 
-    case 3:  // Blank screen again
+    case 3:  // Blank screen after humidity
       clearDisplays();
+      Serial.println("Blank screen after humidity");
       break;
 
-    case 4:  // Return to clock
+    case 4:   // Return to clock
+    default:  // Fallback case to ensure we always return to clock
       showingTempHumidity = false;
       tempHumidityStep = 0;
 
@@ -225,8 +236,9 @@ void handleTempHumiditySequence(unsigned long currentMillis) {
       prevHour = prevMinute = prevSecond = -1;
       prevYear = prevMonth = prevDay = -1;
 
-      // Force a complete display update by calling updateDisplayTextForceAll()
+      // Force a complete display update
       updateDisplayTextForceAll();
+      Serial.println("Returned to clock display");
       break;
   }
 }
@@ -362,4 +374,18 @@ void clearDisplays() {
   delayMicroseconds(100);
   digitalWrite(CLR, HIGH);
   delayMicroseconds(100);
+}
+
+void resetTempHumiditySequence() {
+  if (showingTempHumidity) {
+    Serial.println("Resetting stuck temp/humidity sequence");
+    showingTempHumidity = false;
+    tempHumidityStep = 0;
+
+    // Re-establish I2C if needed
+    Wire.begin();
+
+    // Force clock display
+    updateDisplayTextForceAll();
+  }
 }
