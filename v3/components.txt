@@ -1,6 +1,4 @@
 Battery holder - https://www.hestore.hu/prod_10045258.html
-Status led - https://www.hestore.hu/prod_10043215.html
-150R resistor - https://www.hestore.hu/prod_10001149.html
 32.768kHz - https://www.hestore.hu/prod_10025521.html
 2x Schottky diode - https://www.hestore.hu/prod_10039694.html
 10uF capacitor - https://www.hestore.hu/prod_10034452.html
@@ -15,3 +13,4 @@ RTC IC - https://www.hestore.hu/prod_10030157.html
 CH340G - https://www.hestore.hu/prod_10036442.html
 Micro USB - https://www.hestore.hu/prod_10032693.html
 2x 22R resistor - https://www.hestore.hu/prod_10001250.html
+2x 15pF capacitors - https://www.hestore.hu/prod_10001125.html
