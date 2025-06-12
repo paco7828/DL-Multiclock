@@ -13,8 +13,8 @@ const byte ADDR1 = A2;
 const byte dataPins[7] = { 7, 8, 9, 10, 11, 12, 13 };
 const byte writePins[SCREEN_COUNT] = { 2, 3, 4, 5, 6 };
 
-// DHT11 Configuration
-#define DHT_PIN 4
+// DHT11 Configuration - CHANGED: Using pin 14 (A3) instead of pin 4 to avoid conflict
+#define DHT_PIN A3
 #define DHT_TYPE DHT11
 DHT dht(DHT_PIN, DHT_TYPE);
 
@@ -51,7 +51,7 @@ void setup() {
   if (EEPROM.read(SETUP_FLAG_ADDR) == 1) {
     rtc.initClock();
     rtc.setDate(12, 4, 6, 0, 25);  // day, weekday (0=Sunday), month, century (0=20xx), year (25=2025)
-    rtc.setTime(13, 52, 20);       // hour, minute, second
+    rtc.setTime(15, 22, 0);       // hour, minute, second
     delay(100);
     EEPROM.write(SETUP_FLAG_ADDR, 0xFF);
     EEPROM.write(LAST_DAY_ADDR, rtc.getDay());  // Store initial day
@@ -179,10 +179,9 @@ void showTempHumiditySequence() {
   tempHumidityStepTime = millis();
   lastTempHumidityDisplay = millis();
 
-  // Format temperature display with exact spacing: "  25'C   TEMPERATURE"
+  // FIXED: Format temperature display: " 25.5'C TEMPERATURE "
   char tempStr[21];
-  int tempInt = (int)round(temperature);
-  snprintf(tempStr, sizeof(tempStr), "  %2d'C   TEMPERATURE", tempInt);
+  snprintf(tempStr, sizeof(tempStr), " %4.1f'C TEMPERATURE ", temperature);
   displayText = String(tempStr);
 
   splitTextForDisplays();
@@ -207,11 +206,10 @@ void handleTempHumiditySequence(unsigned long currentMillis) {
       Serial.println("Blank screen after temperature");
       break;
 
-    case 2:  // Show humidity with exact spacing: "   56%     HUMIDITY  "
+    case 2:  // FIXED: Show humidity: "  56.2%   HUMIDITY  "
       {
-        char humStr[22];
-        int humInt = (int)round(humidity);
-        snprintf(humStr, sizeof(humStr), "   %2d%%    HUMIDITY   ", humInt);
+        char humStr[21];
+        snprintf(humStr, sizeof(humStr), "  %4.1f%%   HUMIDITY  ", humidity);
         displayText = String(humStr);
         splitTextForDisplays();
         updateAllDisplays();
@@ -258,11 +256,11 @@ void updateDisplayText() {
 
   // Only update if something changed
   if (timeChanged || dateChanged) {
-    char timeBuf[9], dateBuf[11];
+    char timeBuf[9], dateBuf[12];  // FIXED: Increased dateBuf size for full year
     snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", currentHour, currentMinute, currentSecond);
-    snprintf(dateBuf, sizeof(dateBuf), "20%02d/%02d/%02d", currentYear, currentMonth, currentDay);
+    snprintf(dateBuf, sizeof(dateBuf), "20%02d/%02d/%02d", currentYear, currentMonth, currentDay);  // FIXED: Added "20" prefix back
 
-    displayText = String(timeBuf) + " " + String(dateBuf);
+    displayText = String(timeBuf) + " " + String(dateBuf) + " ";
 
     splitTextForDisplays();
 
@@ -290,11 +288,11 @@ void updateDisplayTextForceAll() {
   int currentMonth = rtc.getMonth();
   int currentDay = rtc.getDay();
 
-  char timeBuf[9], dateBuf[11];
+  char timeBuf[9], dateBuf[12];  // FIXED: Increased dateBuf size for full year
   snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d", currentHour, currentMinute, currentSecond);
-  snprintf(dateBuf, sizeof(dateBuf), "20%02d/%02d/%02d", currentYear, currentMonth, currentDay);
+  snprintf(dateBuf, sizeof(dateBuf), "20%02d/%02d/%02d", currentYear, currentMonth, currentDay);  // FIXED: Added "20" prefix back
 
-  displayText = String(timeBuf) + " " + String(dateBuf);
+  displayText = String(timeBuf) + " " + String(dateBuf) + " ";
 
   splitTextForDisplays();
 
