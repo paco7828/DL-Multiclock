@@ -14,7 +14,7 @@ const byte dataPins[7] = { 7, 8, 9, 10, 11, 12, 13 };
 const byte writePins[SCREEN_COUNT] = { 2, 3, 4, 5, 6 };
 
 // DHT11 Configuration
-#define DHT_PIN A3
+#define DHT_PIN 4
 #define DHT_TYPE DHT11
 DHT dht(DHT_PIN, DHT_TYPE);
 
@@ -50,8 +50,8 @@ void setup() {
   // Set time once
   if (EEPROM.read(SETUP_FLAG_ADDR) == 1) {
     rtc.initClock();
-    rtc.setDate(11, 3, 6, 0, 25);  // day, weekday (0=Sunday), month, century (0=20xx), year (25=2025)
-    rtc.setTime(12, 59, 15);       // hour, minute, second
+    rtc.setDate(12, 4, 6, 0, 25);  // day, weekday (0=Sunday), month, century (0=20xx), year (25=2025)
+    rtc.setTime(13, 52, 20);       // hour, minute, second
     delay(100);
     EEPROM.write(SETUP_FLAG_ADDR, 0xFF);
     EEPROM.write(LAST_DAY_ADDR, rtc.getDay());  // Store initial day
@@ -120,7 +120,7 @@ void checkDayChange() {
     long totalSeconds = (long)currentHour * 3600 + (long)currentMinute * 60 + currentSecond;
 
     // Subtract some seconds (example: subtract 10 seconds per day)
-    totalSeconds -= 5;
+    totalSeconds -= 2;
 
     // Handle negative seconds
     if (totalSeconds < 0) {
