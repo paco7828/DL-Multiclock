@@ -1,0 +1,8 @@
+3x DL2416
+2x DL3416
+2x SN74HC595 - https://www.hestore.hu/prod_10021551.html
+1x Buzzer - https://www.hestore.hu/prod_10044010.html
+1x JST connector 1x4 - https://www.hestore.hu/prod_10041551.html
+1x XHP-4 cable - https://www.hestore.hu/prod_10041605.html
+1x DHT11 - https://www.hestore.hu/prod_10035544.html
+1x ESP32 C3 SUPERMINI - https://www.hestore.hu/prod_10048018.html
