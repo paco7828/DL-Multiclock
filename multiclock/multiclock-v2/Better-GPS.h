@@ -197,7 +197,7 @@ public:
     timeCache.lastUpdate = 0;
   }
 
-  void begin(byte gpsRx, int gpsBaud = 9600, byte gpsTx = -1) {
+  void begin(byte gpsRx, byte gpsTx = -1, int gpsBaud = 9600) {
     gpsSerial.begin(gpsBaud, SERIAL_8N1, gpsRx, gpsTx);
   }
 

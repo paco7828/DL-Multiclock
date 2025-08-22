@@ -2,8 +2,8 @@
 (1) 74HC595:
     Control pins -> MCU:
         SRCLK -> IO3
-        RCLK -> IO4
-        SER -> IO5
+        RCLK -> IO10
+        SER -> IO9
         QH' -> (2) 74HC595 SER
     Outputs -> Displays:
         QA -> CLR
@@ -18,7 +18,7 @@
 (2) 74HC595:
     Control pins -> MCU:
         SRCLK -> IO3
-        RCLK -> IO4
+        RCLK -> IO10
         SER -> (1) 74HC595 QH'
     Outputs -> Displays
         QA -> D0
@@ -32,13 +32,13 @@
 GPS -> MCU:
     V -> 3.3V
     G -> GND
-    T -> IO1
-    R -> IO2
+    T -> IO4
+    R -> NC
 
 DHT11 -> MCU:
     VCC -> 5V
     GND -> GND
-    DATA -> IO0
+    DATA -> IO5
 
 DS3231M -> MCU:
     VCC -> 5V
@@ -50,33 +50,48 @@ DS3231M -> MCU:
 Buzzer -> MCU:
     + -> IO8
     - -> GND
+
+JoyStick -> MCU:
+  X -> IO0
+  SW -> IO1
+  Y -> IO2
 */
 
-#include <DHT.h>
-#include "Better-GPS.h"
+#include "DL-display.h"
 #include <Wire.h>
 #include "RTClib.h"
+#include <DHT.h>
+#include "Better-GPS.h"
+#include "Better-JoyStick.h"
 
 // Pins
-const byte DHT_SENSOR = 0;
+const byte SRCLK = 3;
+const byte RCLK = 10;
+const byte SER = 9;
+const byte JS_SW = 1;
+const byte JS_X = 0;
+const byte JS_Y = 2;
+const byte DHT_SENSOR = 5;
 const byte BUZZER = 8;
-const byte GPS_TX = 1;
-const byte GPS_RX = 2;
+const byte GPS_RX = 4;
 const byte RTC_SDA = 6;
 const byte RTC_SCL = 7;
-const byte SRCLK = 3;
-const byte RCLK = 4;
-const byte SER = 5;
+
+// Display
+DLDisplay display;
 
 // DHT sensor
 #define DHT_TYPE DHT11
 DHT dht(DHT_SENSOR, DHT_TYPE);
 
 // GPS
-GPS gps;
+BetterGPS gps;
 
 // RTC
 RTC_DS3231 rtc;
+
+// JoyStick
+BetterJoystick joystick;
 
 // DHT variables
 float temperature = 0.0;
@@ -88,56 +103,38 @@ unsigned long lastRtcSync = 0;
 
 // Helper variables
 bool rtcAvailable = false;
-uint16_t shiftData = 0;
-
-/*
-    1st bit -> displays' clear (WR)
-    2nd bit -> displays' digit selector (A0)
-    3rd bit -> displays' digit selector (A1)
-    4th bit -> display 1's write (WR)
-    5th bit -> display 2's write (WR)
-    6th bit -> display 3's write (WR)
-    7th bit -> display 4's write (WR)
-    8th bit -> display 5's write (WR)
-    9th bit -> displays' data pin (D0)
-    10th bit -> displays' data pin (D1)
-    11th bit -> displays' data pin (D2)
-    12th bit -> displays' data pin (D3)
-    13th bit -> displays' data pin (D4)
-    14th bit -> displays' data pin (D5)
-    15th bit -> displays' data pin (D6)
-    16th bit -> nothing
-
-    10000000-00000000 -> Clears Displays
-    00010000-00000000 -> Write Display 1
-    00001000-00000000 -> Write Display 2
-    00000100-00000000 -> Write Display 3
-    00000010-00000000 -> Write Display 4
-    00000001-00000000 -> Write Display 5
-    01100000-00000000 -> Select 1st digit
-    00100000-00000000 -> Select 2nd digit
-    01000000-00000000 -> Select 3rd digit
-    00000000-00000000 -> Select 4th digit
-    00000000-10000000 -> D0 activation
-    00000000-01000000 -> D1 activation
-    00000000-00100000 -> D2 activation
-    00000000-00010000 -> D3 activation
-    00000000-00001000 -> D4 activation
-    00000000-00000100 -> D5 activation
-    00000000-00000010 -> D6 activation
-*/
 
 void setup() {
   Serial.begin(115200);
   delay(2000);
   Serial.println("STARTED");
+  joystick.begin(JS_SW, JS_X, JS_Y);
+
+  display.begin(SRCLK, RCLK, SER);
   pinMode(BUZZER, OUTPUT);
-  pinMode(SRCLK, OUTPUT);
-  pinMode(RCLK, OUTPUT);
-  pinMode(SER, OUTPUT);
+
+  // Display startup message - need to refresh during delay
+  display.setDisplayText("DL34/2416-MULTICLOCK");
+
+  // Keep refreshing display for 2 seconds to show the text
+  unsigned long startTime = millis();
+  while (millis() - startTime < 2000) {
+    display.refreshDisplay();
+    delayMicroseconds(100);  // Small delay to prevent overwhelming the system
+  }
+
+  // Display second message
+  display.setDisplayText("34163416241624162416");
+
+  // Keep refreshing for another period
+  startTime = millis();
+  while (millis() - startTime < 2000) {
+    display.refreshDisplay();
+    delayMicroseconds(100);
+  }
 
   // Start GPS
-  gps.begin(GPS_RX, GPS_TX);
+  gps.begin(GPS_RX);
 
   // Start RTC
   Wire.begin(RTC_SDA, RTC_SCL);
@@ -151,58 +148,76 @@ void setup() {
 
   dht.begin();
   Serial.println("System ready...");
-
-  displayText("HELLO WORLD 12345");  // Up to 20 chars
 }
 
 void loop() {
+  display.refreshDisplay();  // Always needed for display multiplexing
+
+  // Get joystick direction
+  Serial.print("Direction: ");
+  Serial.println(joystick.getDirection());
+  Serial.print("Button pressed: ");
+  Serial.println(joystick.getButtonPress());
+
+  // Update GPS continuously
   gps.update();
 
   if (gps.hasFix()) {
-    // Resync RTC every 10 minutes
+    // Get Hungarian local time from GPS
+    int year, month, day, dayIndex, hour, minute, second;
+    gps.getHungarianTime(year, month, day, dayIndex, hour, minute, second);
+
+    // Format time and date string: "HH:MM:SS YYYY.MM.DD."
+    char timeString[21];  // 20 chars + null terminator
+    sprintf(timeString, "%02d:%02d:%02d %04d.%02d.%02d.",
+            hour, minute, second, year, month, day);
+
+    // Display the formatted string
+    display.setDisplayText(timeString);
+
+    // Resync RTC every 10 minutes if available
     if (millis() - lastRtcSync >= RTC_SYNC_INTERVAL && rtcAvailable) {
-      rtc.adjust(DateTime(gps.getYear(), gps.getMonth(), gps.getDay(),
-                          gps.getHour(), gps.getMinute(), gps.getSecond()));
+      rtc.adjust(DateTime(year, month, day, hour, minute, second));
       lastRtcSync = millis();
       Serial.println("RTC synced with GPS");
     }
 
-    // Print GPS info
-    Serial.print("Lat: ");
-    Serial.print(gps.getLatitude(), 6);
-    Serial.print("  Lng: ");
-    Serial.print(gps.getLongitude(), 6);
+    // Optional: Print to serial for debugging
+    Serial.printf("Displaying: %s\n", timeString);
+    Serial.printf("GPS - Lat: %.6f, Lng: %.6f, Speed: %.1f km/h\n",
+                  gps.getLatitude(), gps.getLongitude(), gps.getSpeedKmph());
 
-    Serial.print("  Speed: ");
-    Serial.print(gps.getSpeedKmph());
-    Serial.println(" km/h");
-
-    // Hungarian local time
-    int year, month, day, dayIndex, hour, minute, second;
-    gps.getHungarianTime(year, month, day, dayIndex, hour, minute, second);
-
-    Serial.printf("Hungarian Time: %04d-%02d-%02d (DayIndex=%d) %02d:%02d:%02d\n",
-                  year, month, day, dayIndex, hour, minute, second);
   } else {
+    // No GPS fix - show waiting message or use RTC fallback
+    display.setDisplayText("WAITING FOR GPS...  ");
+
     Serial.println("Waiting for GPS fix...");
 
     if (rtcAvailable) {
-      // Fallback to RTC when no GPS
+      // Display RTC time as fallback
       DateTime now = rtc.now();
-      Serial.printf("RTC time: %04d-%02d-%02d %02d:%02d:%02d\n",
-                    now.year(), now.month(), now.day(),
-                    now.hour(), now.minute(), now.second());
+      char rtcTimeString[21];
+      sprintf(rtcTimeString, "%02d:%02d:%02d %04d.%02d.%02d.",
+              now.hour(), now.minute(), now.second(),
+              now.year(), now.month(), now.day());
+
+      // Show RTC time when GPS is unavailable
+      display.setDisplayText(rtcTimeString);
+
+      Serial.printf("RTC fallback: %s\n", rtcTimeString);
     }
   }
 
-  // Read DHT
+  /*
+  // Read DHT sensor
   temperature = dht.readTemperature();
   humidity = dht.readHumidity();
   if (!isnan(temperature) && !isnan(humidity)) {
-    Serial.printf("Temp: %.1f °C  Humidity: %.1f %%\n", temperature, humidity);
+    Serial.printf("Temp: %.1f°C  Humidity: %.1f%%\n", temperature, humidity);
   }
+  */
 
-  delay(1000);
+  delay(500);
 }
 
 void updateShiftRegisters(uint16_t data) {
