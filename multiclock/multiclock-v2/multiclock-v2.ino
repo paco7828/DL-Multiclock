@@ -53,6 +53,39 @@ float humidity = 0.0;
 const unsigned long RTC_SYNC_INTERVAL = 10UL * 60UL * 1000UL;  // 10 minutes in ms
 unsigned long lastRtcSync = 0;
 
+// Auto-display cycle for mode 0 (every 10 minutes)
+const unsigned long AUTO_CYCLE_INTERVAL = 10UL * 60UL * 1000UL;  // 10 minutes in ms
+const unsigned long TEMP_DISPLAY_DURATION = 4000UL;              // 4 seconds
+const unsigned long HUMIDITY_DISPLAY_DURATION = 4000UL;          // 4 seconds
+unsigned long lastAutoCycle = 0;
+unsigned long cycleStartTime = 0;
+byte autoCycleState = 0;  // 0 = normal time, 1 = showing temp, 2 = showing humidity
+
+// Modes
+char* MODE_TITLES[] = {
+  "HH:MM:SS YYYY.MM.DD.",
+  " --.- C  TEMPERATURE",
+  " --.- %   HUMIDITY  ",
+  " XX KM/H CITY MODE Y",
+  "GPS LAT  --.------- ",
+  "GPS LON  --.------- "
+};
+
+// Variable to store selected mode
+byte currentMode = 0;      // Default mode
+const byte MAX_MODES = 6;  // Total number of modes
+
+// Joystick navigation variables
+byte lastJoystickDirection = 0;
+bool joystickCentered = true;  // Track if joystick returned to center
+
+// 0 -> "16:00:00 2025.06.06."
+// 1 -> " 24.5 C  TEMPERATURE"
+// 2 ->" 32.5 %   HUMIDITY  "
+// 3 -> " XX KM/H" (when button pressed -> " XX KM/H CITY MODE Y" or " XX KM/H CITY MODE N", shown for 3 seconds)
+// 4 -> "GPS LAT  18.1234567 "
+// 5 -> "GPS LON  18.1234567 "
+
 // Message display control
 unsigned long messageStartTime = 0;
 const unsigned long MESSAGE_DISPLAY_DURATION = 3000;  // 3 seconds
@@ -132,6 +165,126 @@ void loop() {
   joystickDirection = joystick.getDirection();
   joystickBtnPressed = joystick.getButtonPress();
 
+  // Handle joystick navigation with debouncing
+  handleJoystickNavigation();
+
+  // SHOW TEMPERATURE for 4 seconds => SHOW HUMIDITY for 4 seconds => JUMP BACK TO CURRENT MODE (every 10 minutes)
+  /*
+     1;  // LEFT
+     2;   // RIGHT
+     3;  // BOTTOM
+     4;   // TOP
+  */
+  switch (currentMode) {
+    case 0:
+      displayTimeMode();
+      break;
+    case 1:
+      displayTemperatureMode();
+      break;
+    case 2:
+      displayHumidityMode();
+      break;
+    case 3:
+      displaySpeedMode();
+      break;
+    case 4:
+      displayLatitudeMode();
+      break;
+    case 5:
+      displayLongitudeMode();
+      break;
+  }
+
+  delay(500);
+}
+
+void handleJoystickNavigation() {
+  // Check if joystick returned to center (direction == 0)
+  if (joystickDirection == 0) {
+    joystickCentered = true;
+  }
+
+  // Only process navigation if joystick was centered and now moved
+  if (joystickCentered && joystickDirection != 0) {
+    if (joystickDirection == 2) {  // RIGHT - move forward in modes
+      currentMode = (currentMode + 1) % MAX_MODES;
+      joystickCentered = false;  // Prevent repeated navigation
+
+      // Reset auto-cycle when leaving mode 0
+      if (currentMode == 1) {
+        autoCycleState = 0;
+      }
+
+      Serial.printf("Mode changed to: %d\n", currentMode);
+    } else if (joystickDirection == 1) {  // LEFT - move backward in modes
+      currentMode = (currentMode == 0) ? (MAX_MODES - 1) : (currentMode - 1);
+      joystickCentered = false;  // Prevent repeated navigation
+
+      // Reset auto-cycle when entering mode 0 from another mode
+      if (currentMode == 0) {
+        autoCycleState = 0;
+        lastAutoCycle = millis();  // Reset the 10-minute timer
+      }
+
+      Serial.printf("Mode changed to: %d\n", currentMode);
+    }
+  }
+}
+
+void displayTimeMode() {
+  // Handle auto-cycle for temperature and humidity display (every 10 minutes)
+  if (millis() - lastAutoCycle >= AUTO_CYCLE_INTERVAL && autoCycleState == 0) {
+    // Start the auto-cycle
+    autoCycleState = 1;  // Show temperature
+    cycleStartTime = millis();
+    lastAutoCycle = millis();
+    Serial.println("Starting auto-cycle: showing temperature");
+  }
+
+  // Handle auto-cycle states
+  if (autoCycleState == 1) {  // Showing temperature
+    // Read and display temperature
+    temperature = dht.readTemperature();
+
+    if (!isnan(temperature)) {
+      char tempString[21];
+      sprintf(tempString, "%4.1f C  TEMPERATURE", temperature);
+      display.setDisplayText(tempString);
+    } else {
+      display.setDisplayText(" --.- C  TEMPERATURE");
+    }
+
+    // Check if 4 seconds have passed, move to humidity
+    if (millis() - cycleStartTime >= TEMP_DISPLAY_DURATION) {
+      autoCycleState = 2;  // Show humidity
+      cycleStartTime = millis();
+      Serial.println("Auto-cycle: switching to humidity");
+    }
+    return;  // Exit early to avoid normal time display
+  }
+
+  if (autoCycleState == 2) {  // Showing humidity
+    // Read and display humidity
+    humidity = dht.readHumidity();
+
+    if (!isnan(humidity)) {
+      char humString[21];
+      sprintf(humString, "%4.1f %%   HUMIDITY  ", humidity);
+      display.setDisplayText(humString);
+    } else {
+      display.setDisplayText(" --.- %   HUMIDITY  ");
+    }
+
+    // Check if 4 seconds have passed, return to normal time
+    if (millis() - cycleStartTime >= HUMIDITY_DISPLAY_DURATION) {
+      autoCycleState = 0;  // Return to normal time display
+      Serial.println("Auto-cycle: returning to time display");
+    }
+    return;  // Exit early to avoid normal time display
+  }
+
+  // Normal time display (autoCycleState == 0)
   // Update GPS continuously
   gps.update();
 
@@ -194,17 +347,78 @@ void loop() {
       Serial.println("Waiting for GPS fix...");
     }
   }
+}
 
-  /*
+void displayTemperatureMode() {
   // Read DHT sensor
   temperature = dht.readTemperature();
-  humidity = dht.readHumidity();
-  if (!isnan(temperature) && !isnan(humidity)) {
-    Serial.printf("Temp: %.1fÂ°C  Humidity: %.1f%%\n", temperature, humidity);
-  }
-  */
 
-  delay(500);
+  if (!isnan(temperature)) {
+    char tempString[21];
+    sprintf(tempString, "%4.1f C  TEMPERATURE", temperature);
+    display.setDisplayText(tempString);
+    Serial.printf("Temp: %.1f°C\n", temperature);
+  } else {
+    display.setDisplayText(" --.- C  TEMPERATURE");
+    Serial.println("Temperature reading failed");
+  }
+}
+
+void displayHumidityMode() {
+  // Read DHT sensor
+  humidity = dht.readHumidity();
+
+  if (!isnan(humidity)) {
+    char humString[21];
+    sprintf(humString, "%4.1f %%   HUMIDITY  ", humidity);
+    display.setDisplayText(humString);
+    Serial.printf("Humidity: %.1f%%\n", humidity);
+  } else {
+    display.setDisplayText(" --.- %   HUMIDITY  ");
+    Serial.println("Humidity reading failed");
+  }
+}
+
+void displaySpeedMode() {
+  gps.update();
+
+  if (gps.hasFix()) {
+    float speed = gps.getSpeedKmph();
+    char speedString[21];
+    sprintf(speedString, "%3.0f KM/H SPEED     ", speed);
+    display.setDisplayText(speedString);
+    Serial.printf("Speed: %.1f km/h\n", speed);
+  } else {
+    display.setDisplayText(" -- KM/H NO GPS FIX ");
+  }
+}
+
+void displayLatitudeMode() {
+  gps.update();
+
+  if (gps.hasFix()) {
+    double latitude = gps.getLatitude();
+    char latString[21];
+    sprintf(latString, "LAT %11.7f", latitude);
+    display.setDisplayText(latString);
+    Serial.printf("Latitude: %.7f\n", latitude);
+  } else {
+    display.setDisplayText("GPS LAT  --.------- ");
+  }
+}
+
+void displayLongitudeMode() {
+  gps.update();
+
+  if (gps.hasFix()) {
+    double longitude = gps.getLongitude();
+    char lonString[21];
+    sprintf(lonString, "LON %11.7f", longitude);
+    display.setDisplayText(lonString);
+    Serial.printf("Longitude: %.7f\n", longitude);
+  } else {
+    display.setDisplayText("GPS LON  --.------- ");
+  }
 }
 
 // Function to show a temporary message for 3 seconds
