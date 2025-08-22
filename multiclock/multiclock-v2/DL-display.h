@@ -158,39 +158,6 @@ public:
     this->displayBuffer[20] = '\0';  // Null terminate
   }
 
-  // Function to scroll text across displays
-  void scrollTextOnce(const char* message, int scrollSpeed) {
-    int messageLen = strlen(message);
-    int totalPositions = messageLen + 20;  // Message length + display width for complete scroll
-    unsigned long lastScroll = millis();
-    int scrollPos = 0;
-
-    while (scrollPos < totalPositions) {
-      // Keep refreshing displays during scroll
-      refreshDisplay();
-
-      // Check if it's time to advance scroll
-      if (millis() - lastScroll >= scrollSpeed) {
-        char tempBuffer[21];  // 20 chars + null terminator
-
-        // Fill the 20-character window
-        for (int i = 0; i < 20; i++) {
-          int charIndex = scrollPos + i - 20;  // Start off-screen
-          if (charIndex >= 0 && charIndex < messageLen) {
-            tempBuffer[i] = message[charIndex];
-          } else {
-            tempBuffer[i] = ' ';  // Empty space
-          }
-        }
-        tempBuffer[20] = '\0';
-
-        setDisplayText(tempBuffer);
-        scrollPos++;
-        lastScroll = millis();
-      }
-    }
-  }
-
   void fullTest() {
     // Test all characters
     for (char c = ' '; c <= 'Z'; c++) {
