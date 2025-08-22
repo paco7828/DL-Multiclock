@@ -1,6 +1,13 @@
 3x DL2416
 2x DL3416
+1x Joystick - https://www.hestore.hu/prod_10035502.html
 2x SN74HC595 - https://www.hestore.hu/prod_10021551.html
+4x 100nF 0805 capacitor - https://www.hestore.hu/prod_10001122.html
+1x 100uF electrolytic capacitor - https://www.hestore.hu/prod_10039018.html
+1x DS3231M IC - https://www.aliexpress.com/item/1005005894823278.html?spm=a2g0o.productlist.main.1.357d187colpnga&algo_pvid=3de64aa1-4dcc-48ec-b818-4ee9ea53ed25&algo_exp_id=3de64aa1-4dcc-48ec-b818-4ee9ea53ed25-0&pdp_ext_f=%7B%22order%22%3A%2248%22%2C%22eval%22%3A%221%22%7D&pdp_npi=6%40dis%21HUF%211255.68%21347.24%21%21%213.58%210.99%21%402103919917558981034418950e439c%2112000034747941176%21sea%21HU%210%21ABX%211%210%21n_tag%3A-29910%3Bd%3A31ec7451%3Bm03_new_user%3A-29895%3BpisId%3A5000000174216174&curPageLogUid=zsfGdhstEIDE&utparam-url=scene%3Asearch%7Cquery_from%3A%7Cx_object_id%3A1005005894823278%7C_p_origin_prod%3A
+2x 4.7kR 0805 resistor - https://www.hestore.hu/prod_10001183.html
+1x CR2032 Battery holder - https://www.hestore.hu/prod_10045258.html
+1x DIP switch - https://www.hestore.hu/prod_10022003.html
 1x Buzzer - https://www.hestore.hu/prod_10044010.html
 1x JST connector 1x4 - https://www.hestore.hu/prod_10041551.html
 1x XHP-4 cable - https://www.hestore.hu/prod_10041605.html
