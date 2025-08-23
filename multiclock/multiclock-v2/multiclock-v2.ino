@@ -48,6 +48,8 @@ BetterJoystick joystick;
 // DHT variables
 float temperature = 0.0;
 float humidity = 0.0;
+unsigned long lastDHTRead = 0;
+const unsigned long DHT_READ_INTERVAL = 2000;  // Read DHT every 2 seconds when needed
 
 // Sync interval
 const unsigned long RTC_SYNC_INTERVAL = 10UL * 60UL * 1000UL;  // 10 minutes in ms
@@ -73,6 +75,11 @@ bool playingMelody = false;
 unsigned long melodyStartTime = 0;
 byte melodyStep = 0;
 
+// Bootup melody variables
+bool playingBootupMelody = false;
+unsigned long bootupMelodyStartTime = 0;
+byte bootupMelodyStep = 0;
+
 // Bootup melody notes (frequencies in Hz)
 const int bootupMelody[] = { 523, 659, 784, 1047 };    // C5, E5, G5, C6
 const int bootupDurations[] = { 150, 150, 150, 300 };  // Note durations in ms
@@ -87,16 +94,6 @@ const byte HOURLY_MELODY_LENGTH = 3;
 const int MODE_CHANGE_FREQ = 800;      // Frequency for mode change beep
 const int MODE_CHANGE_DURATION = 100;  // Duration for mode change beep
 
-// Modes
-char* MODE_TITLES[] = {
-  "HH:MM:SS YYYY.MM.DD.",
-  " --.- C  TEMPERATURE",
-  " --.- %   HUMIDITY  ",
-  " XX KM/H CITY MODE Y",
-  "GPS LAT  --.------- ",
-  "GPS LON  --.------- "
-};
-
 // Variable to store selected mode
 byte currentMode = 0;      // Default mode
 const byte MAX_MODES = 6;  // Total number of modes
@@ -104,12 +101,11 @@ const byte MAX_MODES = 6;  // Total number of modes
 // Joystick navigation variables
 bool joystickCentered = true;  // Track if joystick returned to center
 
-// 0 -> "16:00:00 2025.06.06."
-// 1 -> " 24.5 C  TEMPERATURE"
-// 2 ->" 32.5 %   HUMIDITY  "
-// 3 -> " XX KM/H" (when button pressed -> " XX KM/H CITY MODE Y" or " XX KM/H CITY MODE N", shown for 3 seconds)
-// 4 -> "GPS LAT  18.1234567 "
-// 5 -> "GPS LON  18.1234567 "
+// Startup display variables
+bool showingStartupMessages = true;
+byte startupMessageStep = 0;
+unsigned long startupMessageTime = 0;
+const unsigned long STARTUP_MESSAGE_DURATION = 2000;  // 2 seconds per message
 
 // Message display control
 unsigned long messageStartTime = 0;
@@ -131,28 +127,13 @@ void setup() {
   // Set buzzer as output
   pinMode(BUZZER, OUTPUT);
 
-  // Play bootup melody
-  playBootupMelody();
+  // Start bootup melody
+  startBootupMelody();
 
-  // Display startup message - need to refresh during delay
+  // Start startup message sequence
   display.setDisplayText("DL34/2416-MULTICLOCK");
-
-  // Keep refreshing display for 2 seconds to show the text
-  unsigned long startTime = millis();
-  while (millis() - startTime < 2000) {
-    display.refreshDisplay();
-    delayMicroseconds(100);  // Small delay to prevent overwhelming the system
-  }
-
-  // Display second message
-  display.setDisplayText("34163416241624162416");
-
-  // Keep refreshing for another period
-  startTime = millis();
-  while (millis() - startTime < 2000) {
-    display.refreshDisplay();
-    delayMicroseconds(100);
-  }
+  startupMessageTime = millis();
+  startupMessageStep = 0;
 
   // Start GPS
   gps.begin(GPS_RX);
@@ -161,10 +142,8 @@ void setup() {
   Wire.begin(RTC_SDA, RTC_SCL);
   if (rtc.begin()) {
     rtcAvailable = true;
-    showTemporaryMessage(" RTC IS INITIALIZED ");
   } else {
     rtcAvailable = false;
-    showTemporaryMessage(" RTC NOT FOUND! :(  ");
   }
 
   dht.begin();
@@ -172,6 +151,13 @@ void setup() {
 
 void loop() {
   display.refreshDisplay();  // Always needed for display multiplexing
+
+  // Handle startup sequence
+  if (showingStartupMessages) {
+    handleStartupSequence();
+    handleBootupMelody();
+    return;
+  }
 
   // Check if we should stop showing temporary message
   if (showingTemporaryMessage && (millis() - messageStartTime >= MESSAGE_DISPLAY_DURATION)) {
@@ -202,6 +188,7 @@ void loop() {
     handleCityModeAlerts();
   }
 
+  // Mode handling
   switch (currentMode) {
     case 0:
       displayTimeMode();
@@ -223,9 +210,68 @@ void loop() {
       break;
   }
 
-  delay(20);
+  delay(50);
 }
 
+// Function to handle startup message sequence
+void handleStartupSequence() {
+  if (millis() - startupMessageTime >= STARTUP_MESSAGE_DURATION) {
+    startupMessageStep++;
+
+    if (startupMessageStep == 1) {
+      // Show second message
+      display.setDisplayText("34163416241624162416");
+      startupMessageTime = millis();
+    } else if (startupMessageStep == 2) {
+      // Show RTC status message
+      if (rtcAvailable) {
+        showTemporaryMessage(" RTC IS INITIALIZED ");
+      } else {
+        showTemporaryMessage(" RTC NOT FOUND! :(  ");
+      }
+      showingStartupMessages = false;  // End startup sequence
+    }
+  }
+}
+
+// Function to start bootup melody
+void startBootupMelody() {
+  playingBootupMelody = true;
+  bootupMelodyStartTime = millis();
+  bootupMelodyStep = 0;
+  tone(BUZZER, bootupMelody[0], bootupDurations[0]);
+}
+
+// Function to handle bootup melody playback (non-blocking)
+void handleBootupMelody() {
+  if (!playingBootupMelody) return;
+
+  // Check if current note duration has passed
+  if (millis() - bootupMelodyStartTime >= bootupDurations[bootupMelodyStep] + 50) {  // +50 for gap
+    bootupMelodyStep++;
+
+    if (bootupMelodyStep < BOOTUP_MELODY_LENGTH) {
+      // Play next note
+      bootupMelodyStartTime = millis();
+      tone(BUZZER, bootupMelody[bootupMelodyStep], bootupDurations[bootupMelodyStep]);
+    } else {
+      // Melody finished
+      playingBootupMelody = false;
+      noTone(BUZZER);
+    }
+  }
+}
+
+// Function to read DHT sensor (only when needed and with rate limiting)
+void readDHTSensor() {
+  if (millis() - lastDHTRead >= DHT_READ_INTERVAL) {
+    temperature = dht.readTemperature();
+    humidity = dht.readHumidity();
+    lastDHTRead = millis();
+  }
+}
+
+// Function to handle joystick navigation with debounce
 void handleJoystickNavigation() {
   // Check if joystick returned to center (direction == 0)
   if (joystickDirection == 0) {
@@ -261,11 +307,12 @@ void handleJoystickNavigation() {
   }
 }
 
+// Function to handle city mode with buzzer
 void handleCityModeAlerts() {
   // Only activate buzzer if city mode is enabled and we have a GPS fix
   if (!cityMode || !gps.hasFix()) {
     // Only turn off buzzer if we're not playing a melody
-    if (!playingMelody) {
+    if (!playingMelody && !playingBootupMelody) {
       digitalWrite(BUZZER, LOW);  // Turn off buzzer
       buzzerState = false;
     }
@@ -277,7 +324,7 @@ void handleCityModeAlerts() {
   // Only beep if speed exceeds city limit
   if (currentSpeed <= CITY_SPEED_LIMIT) {
     // Only turn off buzzer if we're not playing a melody
-    if (!playingMelody) {
+    if (!playingMelody && !playingBootupMelody) {
       digitalWrite(BUZZER, LOW);  // Turn off buzzer
       buzzerState = false;
     }
@@ -303,6 +350,7 @@ void handleCityModeAlerts() {
   }
 }
 
+// Function to display time and date (default)
 void displayTimeMode() {
   // Handle auto-cycle for temperature and humidity display (every 10 minutes)
   if (millis() - lastAutoCycle >= AUTO_CYCLE_INTERVAL && autoCycleState == 0) {
@@ -310,18 +358,19 @@ void displayTimeMode() {
     autoCycleState = 1;  // Show temperature
     cycleStartTime = millis();
     lastAutoCycle = millis();
+    readDHTSensor();  // Read DHT for auto-cycle
   }
 
   // Handle auto-cycle states
   if (autoCycleState == 1) {  // Showing temperature
-    // Read and display temperature
-    temperature = dht.readTemperature();
-
+    // Valid temperature
     if (!isnan(temperature)) {
       char tempString[21];
       sprintf(tempString, "%4.1f C  TEMPERATURE", temperature);
       display.setDisplayText(tempString);
-    } else {
+    }
+    // Invalid temperature
+    else {
       display.setDisplayText(" --.- C  TEMPERATURE");
     }
 
@@ -334,14 +383,14 @@ void displayTimeMode() {
   }
 
   if (autoCycleState == 2) {  // Showing humidity
-    // Read and display humidity
-    humidity = dht.readHumidity();
-
+    // Valid humidity
     if (!isnan(humidity)) {
       char humString[21];
       sprintf(humString, "%4.1f %%   HUMIDITY  ", humidity);
       display.setDisplayText(humString);
-    } else {
+    }
+    // Invalid humidity
+    else {
       display.setDisplayText(" --.- %   HUMIDITY  ");
     }
 
@@ -352,10 +401,15 @@ void displayTimeMode() {
     return;  // Exit early to avoid normal time display
   }
 
-  // Normal time display (autoCycleState == 0)
-  // GPS is already updated in main loop, no need to call gps.update() again
+  // Static variables for RTC fallback handling
+  static bool rtcFallbackShown = false;
+  static unsigned long rtcFallbackTime = 0;
 
+  // Normal time display (autoCycleState == 0)
   if (gps.hasFix()) {
+    // Reset RTC fallback flag when GPS fix is regained
+    rtcFallbackShown = false;
+
     // Get Hungarian local time from GPS
     int year, month, day, dayIndex, hour, minute, second;
     gps.getHungarianTime(year, month, day, dayIndex, hour, minute, second);
@@ -368,10 +422,13 @@ void displayTimeMode() {
     // Display the formatted string
     display.setDisplayText(timeString);
 
-    // Check for hourly chime (when seconds are 00)
+    // Check for hourly chime (when seconds and minutes are 00)
     if (hour != lastHour && second == 0 && minute == 0 && !playingMelody) {
       lastHour = hour;
-      playHourlyChime();
+      playingMelody = true;
+      melodyStartTime = millis();
+      melodyStep = 0;
+      tone(BUZZER, hourlyMelody[0], hourlyDurations[0]);
     }
 
     // Resync RTC every 10 minutes if available
@@ -386,9 +443,6 @@ void displayTimeMode() {
     // No GPS fix
     if (rtcAvailable) {
       // Show RTC fallback message for 3 seconds, then display RTC time
-      static bool rtcFallbackShown = false;
-      static unsigned long rtcFallbackTime = 0;
-
       if (!rtcFallbackShown) {
         showTemporaryMessage("   RTC    FALLBACK  ");
         rtcFallbackShown = true;
@@ -409,42 +463,45 @@ void displayTimeMode() {
     } else {
       // No GPS fix and no RTC available
       display.setDisplayText("WAITING FOR GPS...  ");
-
-      // Reduce "waiting" message frequency
-      static unsigned long lastWaitingMessage = 0;
-      if (millis() - lastWaitingMessage >= 2000) {  // Print every 2 seconds
-        lastWaitingMessage = millis();
-      }
     }
   }
 }
 
+// Function to show temperature
 void displayTemperatureMode() {
-  // Read DHT sensor
-  temperature = dht.readTemperature();
+  // Read DHT sensor only when in this mode
+  readDHTSensor();
 
+  // Valid temperature
   if (!isnan(temperature)) {
     char tempString[21];
     sprintf(tempString, "%4.1f C  TEMPERATURE", temperature);
     display.setDisplayText(tempString);
-  } else {
+  }
+  // Invalid temperature
+  else {
     display.setDisplayText(" --.- C  TEMPERATURE");
   }
 }
 
+// Function to display humidity
 void displayHumidityMode() {
-  // Read DHT sensor
-  humidity = dht.readHumidity();
+  // Read DHT sensor only when in this mode
+  readDHTSensor();
 
+  // Valid humidity
   if (!isnan(humidity)) {
     char humString[21];
     sprintf(humString, "%4.1f %%   HUMIDITY  ", humidity);
     display.setDisplayText(humString);
-  } else {
+  }
+  // Invalid humidity
+  else {
     display.setDisplayText(" --.- %   HUMIDITY  ");
   }
 }
 
+// Function to display current speed
 void displaySpeedMode() {
   // Handle joystick button press to toggle city mode and show status
   static bool buttonPressed = false;
@@ -475,7 +532,11 @@ void displaySpeedMode() {
       if (gps.hasFix()) {
         float speed = gps.getSpeedKmph();
         char statusString[21];
-        sprintf(statusString, "%3.0f KM/H CITY MODE %c", speed, cityMode ? 'Y' : 'N');
+        if (speed >= 100.0) {
+          sprintf(statusString, "%.0f KM/H CITY MODE %c", speed, cityMode ? 'Y' : 'N');
+        } else {
+          sprintf(statusString, "%3.0f KM/H CITY MODE %c", speed, cityMode ? 'Y' : 'N');
+        }
         display.setDisplayText(statusString);
       } else {
         char statusString[21];
@@ -490,15 +551,21 @@ void displaySpeedMode() {
   if (gps.hasFix()) {
     float speed = gps.getSpeedKmph();
     char speedString[21];
-    sprintf(speedString, "%3.0f KM/H SPEED     ", speed);
+    if (speed >= 100.0) {
+      // For 3-digit speeds: "102 KM/H SPEED     "
+      sprintf(speedString, "%.0f KM/H SPEED     ", speed);
+    } else {
+      // For 2-digit speeds: " 99 KM/H SPEED     "
+      sprintf(speedString, "%3.0f KM/H SPEED     ", speed);
+    }
     display.setDisplayText(speedString);
   } else {
     display.setDisplayText(" -- KM/H NO GPS FIX ");
   }
 }
 
+// Function to display GPS latitude
 void displayLatitudeMode() {
-  // GPS already updated in main loop
   if (gps.hasFix()) {
     double latitude = gps.getLatitude();
     char latString[21];
@@ -509,8 +576,8 @@ void displayLatitudeMode() {
   }
 }
 
+// Function to display GPS longitude
 void displayLongitudeMode() {
-  // GPS already updated in main loop
   if (gps.hasFix()) {
     double longitude = gps.getLongitude();
     char lonString[21];
@@ -528,26 +595,7 @@ void showTemporaryMessage(const char* message) {
   showingTemporaryMessage = true;
 }
 
-// Sound-related functions
-void playBootupMelody() {
-  for (byte i = 0; i < BOOTUP_MELODY_LENGTH; i++) {
-    tone(BUZZER, bootupMelody[i], bootupDurations[i]);
-    delay(bootupDurations[i] + 50);  // Small gap between notes
-  }
-  noTone(BUZZER);
-}
-
-void playHourlyChime() {
-  playingMelody = true;
-  melodyStartTime = millis();
-  melodyStep = 0;
-  tone(BUZZER, hourlyMelody[0], hourlyDurations[0]);
-}
-
-void playModeChangeBeep() {
-  tone(BUZZER, MODE_CHANGE_FREQ, MODE_CHANGE_DURATION);
-}
-
+// Function to handle hourly melody playback
 void handleMelodyPlayback() {
   if (!playingMelody) return;
 
@@ -565,4 +613,9 @@ void handleMelodyPlayback() {
       noTone(BUZZER);
     }
   }
+}
+
+// Beep function which plays when switching modes
+void playModeChangeBeep() {
+  tone(BUZZER, MODE_CHANGE_FREQ, MODE_CHANGE_DURATION);
 }
